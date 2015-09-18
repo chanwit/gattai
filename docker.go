@@ -14,7 +14,7 @@ import (
 	"github.com/docker/docker/utils"
 )
 
-func dockerClientMain() {
+func dockerMain() {
 	if reexec.Init() {
 		return
 	}
@@ -28,7 +28,7 @@ func dockerClientMain() {
 
 	flag.Usage = func() {
 		fmt.Fprint(os.Stdout, "Usage: gattai [OPTIONS] COMMAND [arg...]\n"+daemonUsage+"       gattai [ --help | -v | --version ]\n\n")
-		fmt.Fprint(os.Stdout, "An orchestration client for Docker.\n\nOptions:\n")
+		fmt.Fprint(os.Stdout, "An orchestration tool for Docker.\n\nOptions:\n")
 
 		flag.CommandLine.SetOutput(os.Stdout)
 		flag.PrintDefaults()
@@ -52,7 +52,7 @@ func dockerClientMain() {
 
 	clientCli := client.NewDockerCli(stdin, stdout, stderr, clientFlags)
 	// TODO: remove once `-d` is retired
-	// handleGlobalDaemonFlag()
+	handleGlobalDaemonFlag()
 
 	if *flHelp {
 		// if global flag --help is present, regardless of what other options and commands there are,
