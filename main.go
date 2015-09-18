@@ -28,8 +28,26 @@ var (
 	handleGlobalDaemonFlag = func() {}
 )
 
+var (
+	backTabs          = "\b\b\b\b\b\b\b\b\b\b\b\b"
+	provisionCommands = []command{
+		{"", ""},
+		{"", backTabs + "Provision:"},
+		{"provision", "Provision command"},
+		{"", ""},
+		{"", backTabs + "Composition:"},
+		{"up", "up command"},
+		{"scale", "scale command"},
+		{"", ""},
+		{"", backTabs + "Engine:"},
+	}
+)
+
 func main() {
 	dockerversion.VERSION = "0.1"
 	dockerversion.GITCOMMIT = "HEAD"
+
+	dockerCommands = append(provisionCommands, dockerCommands...)
+
 	dockerMain()
 }

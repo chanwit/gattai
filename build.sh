@@ -12,7 +12,7 @@ elif [ "$(expr substr $(uname -s) 1 9)" == "CYGWIN_NT" ]; then
 	VENDOR=`cygpath -m $PWD`/vendor
 	# OLD_GOPATH=$GOPATH
 	(cd $GOPATH/src/github.com/docker/machine && $GOPATH/bin/godep restore)
-	export GOPATH="$VENDOR;$DOCKER_VENDOR;$GOPATH"
+	export GOPATH="$DOCKER_VENDOR;$GOPATH;$VENDOR"
 fi
 
 go clean
