@@ -1,0 +1,10 @@
+machines:
+    ocean:
+        driver: digitalocean
+        instances: 10
+        options:
+        - "AA=BB"
+    aiyara:
+        driver: generic
+        instances: 50
+
