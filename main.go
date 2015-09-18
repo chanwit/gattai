@@ -34,16 +34,18 @@ var (
 	provisionCommands = []command{
 		separator,
 		{"", backTabs + "Provision:"},
-		{"provision", "Provision command"},
+		{"provision", "Provision a set of machines"},
 
 		separator,
 		{"", backTabs + "Clustering:"},
+		{"disti", "Distribute images across the cluster"},
+		{"refresh", "Refresh a snapshot of the cluster information"},
 		{"select", "Select a candidate engine to place a container"},
 
 		separator,
 		{"", backTabs + "Composition:"},
-		{"up", "up command"},
 		{"scale", "scale command"},
+		{"up", "up command"},
 
 		separator,
 		{"", backTabs + "Engine:"},
