@@ -30,15 +30,22 @@ var (
 
 var (
 	backTabs          = "\b\b\b\b\b\b\b\b\b\b\b\b"
+	separator         = command{"", ""}
 	provisionCommands = []command{
-		{"", ""},
+		separator,
 		{"", backTabs + "Provision:"},
 		{"provision", "Provision command"},
-		{"", ""},
+
+		separator,
+		{"", backTabs + "Clustering:"},
+		{"select", "Select a candidate engine to place a container"},
+
+		separator,
 		{"", backTabs + "Composition:"},
 		{"up", "up command"},
 		{"scale", "scale command"},
-		{"", ""},
+
+		separator,
 		{"", backTabs + "Engine:"},
 	}
 )
