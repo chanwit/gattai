@@ -21,9 +21,10 @@ rm -Rf $VENDOR/pkg
 # $GOPATH/bin/govers -m github.com/docker/docker github.com/chanwit/docker
 
 (cd ../../docker/docker && git remote update && git reset --hard HEAD)
-# patch --dry-run -p1 -d ../../docker/docker -f < 001.patch
-# if [ "$?" == "0" ]; then
-#	patch -p1 -d ../../docker/docker -f < 001.patch
-# fi
-
-go install github.com/chanwit/gattai
+patch --dry-run -p1 -d ../../docker/docker -f < 001.patch
+if [ "$?" == "0" ]; then
+	patch -p1 -d ../../docker/docker -f < 001.patch
+	go install github.com/chanwit/gattai
+else
+	echo "patch not successsfully, aborted"
+fi

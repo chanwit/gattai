@@ -1,0 +1,35 @@
+diff --git a/api/client/volume.go b/api/client/volume.go
+index 740f3d7..5a6640e 100644
+--- a/api/client/volume.go
++++ b/api/client/volume.go
+@@ -32,7 +32,7 @@ func (cli *DockerCli) CmdVolume(args ...string) error {
+ 		description += fmt.Sprintf("  %-25.25s%s\n", cmd[0], cmd[1])
+ 	}
+ 
+-	description += "\nRun 'docker volume COMMAND --help' for more information on a command"
++	description += "\nRun 'gattai volume COMMAND --help' for more information on a command"
+ 	cmd := Cli.Subcmd("volume", []string{"[COMMAND]"}, description, true)
+ 	cmd.Require(flag.Exact, 0)
+ 	cmd.ParseFlags(args, true)
+diff --git a/cli/cli.go b/cli/cli.go
+index 8e559fc..38e7d12 100644
+--- a/cli/cli.go
++++ b/cli/cli.go
+@@ -99,7 +99,7 @@ func (cli *Cli) noSuchCommand(command string) {
+ 	if cli.Stderr == nil {
+ 		cli.Stderr = os.Stderr
+ 	}
+-	fmt.Fprintf(cli.Stderr, "docker: '%s' is not a docker command.\nSee 'docker --help'.\n", command)
++	fmt.Fprintf(cli.Stderr, "gattai: '%s' is not a docker command.\nSee 'docker --help'.\n", command)
+ 	os.Exit(1)
+ }
+ 
+@@ -180,7 +180,7 @@ func Subcmd(name string, synopses []string, description string, exitOnError bool
+ 				synopsis = " " + synopsis
+ 			}
+ 
+-			fmt.Fprintf(flags.Out(), "\n%sdocker %s%s%s", lead, name, options, synopsis)
++			fmt.Fprintf(flags.Out(), "\n%sgattai %s%s%s", lead, name, options, synopsis)
+ 		}
+ 
+ 		fmt.Fprintf(flags.Out(), "\n\n%s\n", description)
