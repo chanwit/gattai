@@ -43,8 +43,8 @@ rm -Rf $GOPATH/pkg
 rm -Rf $VENDOR/pkg
 # $GOPATH/bin/govers -m github.com/docker/docker github.com/chanwit/docker
 
-(cd ../../docker/docker     && git remote update && git reset --hard HEAD)
-(cd ../../docker/libcompose && git remote update && git reset --hard HEAD)
+(cd ../../docker/docker     && git remote update && git reset --hard origin/master)
+(cd ../../docker/libcompose && git remote update && git reset --hard origin/master)
 
 patch --dry-run -p1 -d ../../docker/docker -f < 001.patch
 if [[ $? -ne 0 ]]; then
