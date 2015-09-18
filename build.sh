@@ -20,11 +20,20 @@ rm -Rf $GOPATH/pkg
 rm -Rf $VENDOR/pkg
 # $GOPATH/bin/govers -m github.com/docker/docker github.com/chanwit/docker
 
-(cd ../../docker/docker && git remote update && git reset --hard HEAD)
+(cd ../../docker/docker     && git remote update && git reset --hard HEAD)
+(cd ../../docker/libcompose && git remote update && git reset --hard HEAD)
 patch --dry-run -p1 -d ../../docker/docker -f < 001.patch
-if [ "$?" == "0" ]; then
-	patch -p1 -d ../../docker/docker -f < 001.patch
-	go install github.com/chanwit/gattai
-else
+if [[ $? -ne 0 ]]; then
 	echo "patch not successsfully, aborted"
+	exit 1
 fi
+
+patch --dry-run -p1 -d ../../docker/libcompose -f < 002.patch
+if [[ $? -ne 0 ]]; then
+	echo "patch not successsfully, aborted"
+	exit 1
+fi
+
+patch -p1 -d ../../docker/docker -f < 001.patch
+patch -p1 -d ../../docker/libcompose -f < 002.patch
+go install github.com/chanwit/gattai
