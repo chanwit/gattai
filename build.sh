@@ -1,5 +1,34 @@
 #!/bin/bash
 
+PACKAGE_PATH="github.com/docker/docker/api/client"
+
+function hardlink_cygwin {
+	for file in "$@"
+	do
+		fsutil hardlink list \
+			$GOPATH/src/$PACKAGE_PATH/$file > /dev/null
+		if [[ $? -ne 0 ]]; then
+			fsutil hardlink create \
+				$GOPATH/src/$PACKAGE_PATH/$file \
+				$VENDOR/src/$PACKAGE_PATH/$file
+		fi
+	done
+}
+
+function update_and_patch {
+	local PROJECT_DIR=$1
+	local PATCH_FILE=$2
+
+	(cd $PROJECT_DIR  && git remote update && git reset --hard origin/master)
+
+	patch --dry-run -p1 -d $PROJECT_DIR -f < $PATCH_FILE
+	if [[ $? -eq 0 ]]; then
+		patch -p1 -d $PROJECT_DIR -f < $PATCH_FILE
+	else
+		echo "Patch not successsfully, aborted"
+	fi
+}
+
 if [ "$(uname)" == "Darwin" ]; then
 	echo "Darwin"
 elif [ "$(expr substr $(uname -s) 1 5)" == "Linux" ]; then
@@ -8,21 +37,7 @@ elif [ "$(expr substr $(uname -s) 1 10)" == "MINGW32_NT" ]; then
     echo "MinGW"
 elif [ "$(expr substr $(uname -s) 1 9)" == "CYGWIN_NT" ]; then
 	VENDOR=`cygpath -m $PWD`/vendor
-	PACKAGE_PATH="github.com/docker/docker/api/client"
-
-	fsutil hardlink list $GOPATH/src/$PACKAGE_PATH/provision.go > /dev/null
-	if [[ $? -ne 0 ]]; then
-	fsutil hardlink create \
-		$GOPATH/src/$PACKAGE_PATH/provision.go \
-		$VENDOR/src/$PACKAGE_PATH/provision.go
-	fi
-
-	if [[ $? -ne 0 ]]; then
-	fsutil hardlink list $GOPATH/src/$PACKAGE_PATH/up.go > /dev/null
-	fsutil hardlink create \
-		$GOPATH/src/$PACKAGE_PATH/up.go \
-		$VENDOR/src/$PACKAGE_PATH/up.go
-	fi
+	hardlink_cygwin provision.go up.go
 
 	DOCKER_VENDOR="$GOPATH/src/github.com/docker/docker/vendor"
 	# MACHINE_VENDOR="$GOPATH/src/github.com/docker/machine/Godeps/_workspace"
@@ -43,22 +58,8 @@ rm -Rf $GOPATH/pkg
 rm -Rf $VENDOR/pkg
 # $GOPATH/bin/govers -m github.com/docker/docker github.com/chanwit/docker
 
-(cd ../../docker/docker     && git remote update && git reset --hard origin/master)
-(cd ../../docker/libcompose && git remote update && git reset --hard origin/master)
+update_and_patch ../../docker/docker     001.patch
+update_and_patch ../../docker/libcompose 002.patch
 
-patch --dry-run -p1 -d ../../docker/docker -f < 001.patch
-if [[ $? -ne 0 ]]; then
-	echo "Patch not successsfully, aborted"
-	exit 1
-fi
-
-patch --dry-run -p1 -d ../../docker/libcompose -f < 002.patch
-if [[ $? -ne 0 ]]; then
-	echo "Patch not successsfully, aborted"
-	exit 1
-fi
-
-patch -p1 -d ../../docker/docker -f < 001.patch
-patch -p1 -d ../../docker/libcompose -f < 002.patch
 go install github.com/chanwit/gattai
 echo "Built successsfully"
