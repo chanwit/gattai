@@ -34,7 +34,11 @@ var (
 	provisionCommands = []command{
 		separator,
 		{"", backTabs + "Provision:"},
+		{"ls", "List machines"},
 		{"provision", "Provision a set of machines"},
+		{"rmm", "Remove machines"},
+		{"service", "Manage Docker service"},
+		{"ssh", "Run an SSH command on a set of machines"},
 
 		separator,
 		{"", backTabs + "Clustering:"},
@@ -44,8 +48,8 @@ var (
 
 		separator,
 		{"", backTabs + "Composition:"},
-		{"scale", "scale command"},
-		{"up", "up command"},
+		{"scale", "Scale services or pods"},
+		{"up", "Build and start services"},
 
 		separator,
 		{"", backTabs + "Engine:"},
