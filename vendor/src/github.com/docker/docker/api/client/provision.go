@@ -81,13 +81,12 @@ func (o Options) Bool(key string) bool {
 
 func readFile(file string) ([]byte, error) {
 	result := []byte{}
-	// file := "docker-provision.yml"
 
-	log.Debugf("Opening provision file: %s", file)
+	log.Debugf("Opening file: %s", file)
 
 	if file == "-" {
 		if bytes, err := ioutil.ReadAll(os.Stdin); err != nil {
-			log.Errorf("Failed to read compose file from stdin: %v", err)
+			log.Errorf("Failed to read file from stdin: %v", err)
 			return nil, err
 		} else {
 			result = bytes
@@ -187,26 +186,23 @@ func setupCertificates(caCertPath, caKeyPath, clientCertPath, clientKeyPath stri
 	return nil
 }
 
-// Usage: gattai provision
-func (cli *DockerCli) CmdProvision(args ...string) error {
-	cmd := Cli.Subcmd("provision", []string{"pattern"}, "Machine patterns, e.g. machine-[1:10]", false)
-	provisionFilename := cmd.String([]string{"f", "-file"}, "docker-provision.yml", "Name of the provision file")
+func readProvision(file string) (Provision, error) {
+	bytes, err := readFile(file)
+	if err != nil {
+		return Provision{}, err
+	}
 
-	// TODO: EnvVar: "MACHINE_STORAGE_PATH"
-	machineStoragePath := cmd.String(
-		[]string{"s", "-storge-path"},
-		utils.GetBaseDir(),
-		"Configure Docker Machine's storage path")
-
-	cmd.ParseFlags(args, true)
-
-	ssh.SetDefaultClient(ssh.Native)
-
-	bytes, err := readFile(*provisionFilename)
 	var p Provision
 	err = yaml.Unmarshal(bytes, &p)
-	log.Infof("%s", p)
+	if err != nil {
+		return Provision{}, err
+	}
 
+	log.Debugf("%s", p)
+	return p, nil
+}
+
+func (p Provision) VerifyDrivers() error {
 	// verify driver
 	for group, details := range p.Machines {
 		if details.Instances == 0 {
@@ -226,8 +222,67 @@ func (cli *DockerCli) CmdProvision(args ...string) error {
 		}
 	}
 
+	return nil
+}
+
+func GetCertInfo() libmachine.CertPathInfo {
+	caCertPath := filepath.Join(utils.GetMachineCertDir(), "ca.pem")
+	caKeyPath := filepath.Join(utils.GetMachineCertDir(), "ca-key.pem")
+	clientCertPath := filepath.Join(utils.GetMachineCertDir(), "cert.pem")
+	clientKeyPath := filepath.Join(utils.GetMachineCertDir(), "key.pem")
+
+	certInfo := libmachine.CertPathInfo{
+		CaCertPath:     caCertPath,
+		CaKeyPath:      caKeyPath,
+		ClientCertPath: clientCertPath,
+		ClientKeyPath:  clientKeyPath,
+	}
+
+	return certInfo
+}
+
+func GetProvider(storagePath string, certInfo libmachine.CertPathInfo) (*libmachine.Provider, error) {
+	store := libmachine.NewFilestore(
+	storagePath,
+	certInfo.CaCertPath,
+	certInfo.CaKeyPath)
+
+	provider, err := libmachine.New(store)
+
+	return provider, err
+}
+
+// Usage: gattai provision
+func (cli *DockerCli) CmdProvision(args ...string) error {
+	cmd := Cli.Subcmd("provision",
+		[]string{"pattern"},
+		"Machine patterns, e.g. machine-[1:10]",
+		false)
+
+	provisionFilename := cmd.String(
+		[]string{"f", "-file"},
+		"provision.yml",
+		"Name of the provision file")
+
+	// TODO: EnvVar: "MACHINE_STORAGE_PATH"
+	machineStoragePath := cmd.String(
+		[]string{"s", "-storge-path"},
+		utils.GetBaseDir(),
+		"Configure Docker Machine's storage path")
+
+	cmd.ParseFlags(args, true)
+
+	ssh.SetDefaultClient(ssh.Native)
+
+	p, err := readProvision(*provisionFilename)
+
+	err = p.VerifyDrivers()
+	if err != nil {
+		return err
+	}
+
 	// extract pattern
-	log.Info(args)
+	log.Debug(args)
 
 	machineList := []string{}
 
@@ -259,26 +314,16 @@ func (cli *DockerCli) CmdProvision(args ...string) error {
 
 	}
 
-	log.Info(machineList)
+	log.Debug(machineList)
 
 	if len(machineList) == 0 {
 		// return
 	}
 
 	// create libmachine's store
-	log.Info(*machineStoragePath)
+	log.Debug(*machineStoragePath)
 
-	caCertPath := filepath.Join(utils.GetMachineCertDir(), "ca.pem")
-	caKeyPath := filepath.Join(utils.GetMachineCertDir(), "ca-key.pem")
-	clientCertPath := filepath.Join(utils.GetMachineCertDir(), "cert.pem")
-	clientKeyPath := filepath.Join(utils.GetMachineCertDir(), "key.pem")
-
-	certInfo := libmachine.CertPathInfo{
-		CaCertPath:     caCertPath,
-		CaKeyPath:      caKeyPath,
-		ClientCertPath: clientCertPath,
-		ClientKeyPath:  clientKeyPath,
-	}
+	certInfo := GetCertInfo()
 
 	if err := setupCertificates(
 		certInfo.CaCertPath,
@@ -288,12 +333,7 @@ func (cli *DockerCli) CmdProvision(args ...string) error {
 		log.Fatalf("Error generating certificates: %s", err)
 	}
 
-	store := libmachine.NewFilestore(
-		*machineStoragePath,
-		certInfo.CaCertPath,
-		certInfo.CaKeyPath)
-
-	provider, err := libmachine.New(store)
+	provider, err := GetProvider(*machineStoragePath, certInfo)
 
 	// check each machine existing
 	for _, machineName := range machineList {
@@ -338,8 +378,8 @@ func (cli *DockerCli) CmdProvision(args ...string) error {
 			}
 		}
 
-		url, _ := host.GetURL()
-		fmt.Printf("%-20s%s\n", machineName, url)
+		// url, _ := host.GetURL()
+		// fmt.Printf("\t%-20s%s\n", machineName, url)
 
 		// then, check status to be active
 		active, _ := host.IsActive()
@@ -347,6 +387,15 @@ func (cli *DockerCli) CmdProvision(args ...string) error {
 			// if not set active
 			host.Start()
 			// check info
+		}
+	}
+
+	fmt.Printf("%-16s%-30s%s\n", "NAME", "URL", "STATUS")
+	for _, machineName := range machineList {
+		host, err := provider.Get(machineName)
+		if err == nil {
+			url, _ := host.GetURL()
+			fmt.Printf("%-16s%-30s%s\n", machineName, url, "ready")
 		}
 	}
 

@@ -5,6 +5,8 @@ import (
 	"os"
 	"path/filepath"
 
+	"gopkg.in/yaml.v2"
+
 	"github.com/Sirupsen/logrus"
 	"github.com/docker/docker/cli"
 	"github.com/docker/docker/cliconfig"
@@ -24,11 +26,32 @@ var (
 	daemonFlags *flag.FlagSet
 	commonFlags = &cli.CommonFlags{FlagSet: new(flag.FlagSet)}
 
-	dockerCertPath  = os.Getenv("DOCKER_CERT_PATH")
-	dockerTLSVerify = os.Getenv("DOCKER_TLS_VERIFY") != ""
+	dockerCertPath  string
+	dockerTLSVerify bool
 )
 
+func initEnvs() {
+	envs := make(map[string]string)
+	bytes, err := readFile(".gattai/.active_host")
+	err = yaml.Unmarshal(bytes, &envs)
+	if err == nil {
+		if os.Getenv("DOCKER_HOST") == "" {
+			os.Setenv("DOCKER_HOST", envs["DOCKER_HOST"])
+		}
+		if os.Getenv("DOCKER_CERT_PATH") == "" {
+			os.Setenv("DOCKER_CERT_PATH", envs["DOCKER_CERT_PATH"])
+		}
+		if os.Getenv("DOCKER_TLS_VERIFY") == "" {
+			os.Setenv("DOCKER_TLS_VERIFY", envs["DOCKER_TLS_VERIFY"])
+		}
+	}
+}
+
 func init() {
+	initEnvs()
+	dockerCertPath = os.Getenv("DOCKER_CERT_PATH")
+	dockerTLSVerify = os.Getenv("DOCKER_TLS_VERIFY") != ""
+
 	if dockerCertPath == "" {
 		dockerCertPath = cliconfig.ConfigDir()
 	}

@@ -37,7 +37,11 @@ elif [ "$(expr substr $(uname -s) 1 10)" == "MINGW32_NT" ]; then
     echo "MinGW"
 elif [ "$(expr substr $(uname -s) 1 9)" == "CYGWIN_NT" ]; then
 	VENDOR=`cygpath -m $PWD`/vendor
-	hardlink_cygwin provision.go up.go init.go
+	hardlink_cygwin  \
+		active.go    \
+		init.go      \
+		provision.go \
+		up.go
 
 	DOCKER_VENDOR="$GOPATH/src/github.com/docker/docker/vendor"
 	# MACHINE_VENDOR="$GOPATH/src/github.com/docker/machine/Godeps/_workspace"

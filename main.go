@@ -1,8 +1,6 @@
 package main
 
 import (
-	"os"
-
 	"github.com/docker/docker/autogen/dockerversion"
 	_ "github.com/docker/machine/drivers"
 	_ "github.com/docker/machine/drivers/amazonec2"
@@ -23,6 +21,11 @@ import (
 
 	_ "github.com/docker/libcompose"
 	_ "github.com/docker/machine/libmachine"
+
+	"io/ioutil"
+	"os"
+
+	log "github.com/Sirupsen/logrus"
 )
 
 var (
@@ -60,6 +63,33 @@ var (
 		{"", backTabs + "Engine:"},
 	}
 )
+
+func readFile(file string) ([]byte, error) {
+	result := []byte{}
+
+	log.Debugf("Opening file: %s", file)
+
+	if file == "-" {
+		if bytes, err := ioutil.ReadAll(os.Stdin); err != nil {
+			log.Debugf("Failed to read file from stdin: %v", err)
+			return nil, err
+		} else {
+			result = bytes
+		}
+	} else if file != "" {
+		if bytes, err := ioutil.ReadFile(file); os.IsNotExist(err) {
+			log.Debugf("Failed to find %s", file)
+			return nil, err
+		} else if err != nil {
+			log.Debugf("Failed to open %s", file)
+			return nil, err
+		} else {
+			result = bytes
+		}
+	}
+
+	return result, nil
+}
 
 func main() {
 	dockerversion.VERSION = "0.1"
