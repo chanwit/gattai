@@ -1,0 +1,11 @@
+---
+machines:
+#
+# Put a group of your machines here.
+# For example,
+#
+  ocean:
+    driver: digitalocean
+    instances: 5
+
+

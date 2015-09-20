@@ -1,6 +1,8 @@
 package main
 
 import (
+	"os"
+
 	"github.com/docker/docker/autogen/dockerversion"
 	_ "github.com/docker/machine/drivers"
 	_ "github.com/docker/machine/drivers/amazonec2"
@@ -33,6 +35,9 @@ var (
 	separator         = command{"", ""}
 	provisionCommands = []command{
 		separator,
+		{"", backTabs + "Global:"},
+		{"init", "Initialize a Gattai mission repository (.gattai)"},
+		separator,
 		{"", backTabs + "Provision:"},
 		{"ls", "List machines"},
 		{"provision", "Provision a set of machines"},
@@ -59,6 +64,10 @@ var (
 func main() {
 	dockerversion.VERSION = "0.1"
 	dockerversion.GITCOMMIT = "HEAD"
+
+	if os.Getenv("MACHINE_STORAGE_PATH") == "" {
+		os.Setenv("MACHINE_STORAGE_PATH", ".gattai/machine")
+	}
 
 	dockerCommands = append(provisionCommands, dockerCommands...)
 

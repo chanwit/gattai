@@ -193,7 +193,10 @@ func (cli *DockerCli) CmdProvision(args ...string) error {
 	provisionFilename := cmd.String([]string{"f", "-file"}, "docker-provision.yml", "Name of the provision file")
 
 	// TODO: EnvVar: "MACHINE_STORAGE_PATH"
-	machineStoragePath := cmd.String([]string{"s", "-storge-path"}, utils.GetBaseDir(), "Configure Docker Machine's storage path")
+	machineStoragePath := cmd.String(
+		[]string{"s", "-storge-path"},
+		utils.GetBaseDir(),
+		"Configure Docker Machine's storage path")
 
 	cmd.ParseFlags(args, true)
 
