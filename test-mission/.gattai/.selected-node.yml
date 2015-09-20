@@ -1,0 +1,5 @@
+---
+DOCKER_CERT_DIR: $PWD/machine/machines/node-1
+DOCKER_HOST: "tcp://1.2.3.4:2376"
+DOCKER_TLS_VERIFY: 1
+HOST_NAME: node-1
