@@ -1,3 +1,4 @@
 *.a
 vendor/pkg
 
+test-mission/.gattai-old/
