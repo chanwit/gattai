@@ -1,10 +1,10 @@
 package client
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"regexp"
+	"sort"
 	"strings"
 	"text/tabwriter"
 
@@ -15,7 +15,6 @@ import (
 	"github.com/docker/machine/log"
 	"github.com/docker/machine/utils"
 	"github.com/skarademir/naturalsort"
-	"sort"
 )
 
 // FilterOptions -
@@ -130,31 +129,6 @@ func (cli *DockerCli) CmdLs(args ...string) error {
 
 	w.Flush()
 	return nil
-}
-
-func parseFilters(filters []string) (FilterOptions, error) {
-	options := FilterOptions{}
-	for _, f := range filters {
-		kv := strings.SplitN(f, "=", 2)
-		if len(kv) != 2 {
-			return options, errors.New("Unsupported filter syntax.")
-		}
-		key, value := kv[0], kv[1]
-
-		switch key {
-		case "swarm":
-			options.SwarmName = append(options.SwarmName, value)
-		case "driver":
-			options.DriverName = append(options.DriverName, value)
-		case "state":
-			options.State = append(options.State, value)
-		case "name":
-			options.Name = append(options.Name, value)
-		default:
-			return options, fmt.Errorf("Unsupported filter key '%s'", key)
-		}
-	}
-	return options, nil
 }
 
 func filterHosts(hosts []*libmachine.Host, filters FilterOptions) []*libmachine.Host {
