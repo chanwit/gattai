@@ -40,12 +40,14 @@ var (
 		separator,
 		{"", backTabs + "Global:"},
 		{"init", "Initialize a Gattai mission repository (.gattai)"},
+
 		separator,
 		{"", backTabs + "Provision:"},
+		{"active", "Set a machine as the active Docker engine"},
 		{"ls", "List machines"},
 		{"provision", "Provision a set of machines"},
 		{"rmm", "Remove machines"},
-		{"service", "Manage Docker service"},
+		{"service", "Manage the Docker service on machines"},
 		{"ssh", "Run an SSH command on a set of machines"},
 
 		separator,

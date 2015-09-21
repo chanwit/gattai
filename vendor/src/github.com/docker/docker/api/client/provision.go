@@ -86,17 +86,17 @@ func readFile(file string) ([]byte, error) {
 
 	if file == "-" {
 		if bytes, err := ioutil.ReadAll(os.Stdin); err != nil {
-			log.Errorf("Failed to read file from stdin: %v", err)
+			log.Debugf("Failed to read file from stdin: %v", err)
 			return nil, err
 		} else {
 			result = bytes
 		}
 	} else if file != "" {
 		if bytes, err := ioutil.ReadFile(file); os.IsNotExist(err) {
-			log.Errorf("Failed to find %s", file)
+			log.Debugf("Failed to find %s", file)
 			return nil, err
 		} else if err != nil {
-			log.Errorf("Failed to open %s", file)
+			log.Debugf("Failed to open %s", file)
 			return nil, err
 		} else {
 			result = bytes
@@ -243,9 +243,9 @@ func GetCertInfo() libmachine.CertPathInfo {
 
 func GetProvider(storagePath string, certInfo libmachine.CertPathInfo) (*libmachine.Provider, error) {
 	store := libmachine.NewFilestore(
-	storagePath,
-	certInfo.CaCertPath,
-	certInfo.CaKeyPath)
+		storagePath,
+		certInfo.CaCertPath,
+		certInfo.CaKeyPath)
 
 	provider, err := libmachine.New(store)
 
@@ -275,6 +275,12 @@ func (cli *DockerCli) CmdProvision(args ...string) error {
 	ssh.SetDefaultClient(ssh.Native)
 
 	p, err := readProvision(*provisionFilename)
+	if err != nil {
+		return err
+	}
+
+	// TODO verify .gattai
+	// if not, return err
 
 	err = p.VerifyDrivers()
 	if err != nil {
@@ -363,7 +369,7 @@ func (cli *DockerCli) CmdProvision(args ...string) error {
 						// Labels:           c.StringSlice("engine-label"),
 						// RegistryMirror:   c.StringSlice("engine-registry-mirror"),
 						// StorageDriver:    c.String("engine-storage-driver"),
-						TlsVerify:  true,
+						TlsVerify: true,
 						// TODO default values
 						InstallURL: details.Options.String("engine-install-url"),
 					},

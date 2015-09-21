@@ -1,4 +1,10 @@
 machines:
+    fake:
+        driver: none
+        instances: 3
+        options:
+            url: tcp://1.2.3.4:2376
+
     do:
         driver: digitalocean
         instances: 2

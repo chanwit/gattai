@@ -9,8 +9,8 @@ import (
 func (cli *DockerCli) CmdUp(args ...string) error {
 	project, err := docker.NewProject(&docker.Context{
 		Context: project.Context{
-			ComposeFile: "docker-compose.yml",
-			ProjectName: "yeah-compose",
+			ComposeFile: "composition.yml",
+			ProjectName: "test",
 		},
 	})
 

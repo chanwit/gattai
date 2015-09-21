@@ -30,11 +30,32 @@ var (
 	dockerTLSVerify bool
 )
 
+func checkPemFiles(envs map[string]string) bool {
+	certPath := envs["DOCKER_CERT_PATH"]
+	if _, err := os.Stat(filepath.Join(certPath, defaultCaFile)); err != nil {
+		// No pem file
+		// Reset cert path and tlsverify
+		os.Setenv("DOCKER_CERT_PATH", "")
+		os.Setenv("DOCKER_TLS_VERIFY", "")
+
+		return false
+	}
+
+	return true
+}
+
 func initEnvs() {
 	envs := make(map[string]string)
 	bytes, err := readFile(".gattai/.active_host")
 	err = yaml.Unmarshal(bytes, &envs)
 	if err == nil {
+
+		if checkPemFiles(envs) == false {
+			return
+		}
+		// check pem file
+		// reset
+
 		if os.Getenv("DOCKER_HOST") == "" {
 			os.Setenv("DOCKER_HOST", envs["DOCKER_HOST"])
 		}

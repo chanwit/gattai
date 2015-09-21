@@ -2,8 +2,8 @@ package client
 
 import (
 	"fmt"
-	"os"
 	"io/ioutil"
+	"os"
 )
 
 func (cli *DockerCli) CmdInit(args ...string) error {
