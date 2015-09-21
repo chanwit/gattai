@@ -40,6 +40,7 @@ elif [ "$(expr substr $(uname -s) 1 9)" == "CYGWIN_NT" ]; then
 	hardlink_cygwin  \
 		active.go    \
 		init.go      \
+		ls.go        \
 		provision.go \
 		up.go
 
