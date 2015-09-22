@@ -2,8 +2,10 @@ package client
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
 	"strings"
+	"text/tabwriter"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/chanwit/gattai/machine"
@@ -19,6 +21,7 @@ import (
 
 // Usage: gattai provision
 func (cli *DockerCli) CmdProvision(args ...string) error {
+
 	cmd := Cli.Subcmd("provision",
 		[]string{"pattern"},
 		"Machine patterns, e.g. machine-[1:10]",
@@ -41,6 +44,7 @@ func (cli *DockerCli) CmdProvision(args ...string) error {
 
 	p, err := machine.ReadProvision(*provisionFilename)
 	if err != nil {
+		log.Debugf("err: %s", err)
 		return err
 	}
 
@@ -49,11 +53,12 @@ func (cli *DockerCli) CmdProvision(args ...string) error {
 
 	err = p.VerifyDrivers()
 	if err != nil {
+		log.Debugf("err: %s", err)
 		return err
 	}
 
 	// extract pattern
-	log.Debug(args)
+	// fmt.Printf("args: %s\n",args)
 
 	machineList := []string{}
 
@@ -70,8 +75,13 @@ func (cli *DockerCli) CmdProvision(args ...string) error {
 		for _, arg := range cmd.Args() {
 			// if it's a group name, use all instances of the group
 			if details, exist := p.Machines[arg]; exist {
-				pattern := fmt.Sprintf("%s-[1:%d]", arg, details.Instances)
-				machineList = append(machineList, Utils.Generate(pattern)...)
+				// if it's the only instance, use arg as name
+				if details.Instances == 0 || details.Instances == 1 {
+					machineList = append(machineList, arg)
+				} else {
+					pattern := fmt.Sprintf("%s-[1:%d]", arg, details.Instances)
+					machineList = append(machineList, Utils.Generate(pattern)...)
+				}
 			} else {
 				// assume it's a pattern
 				machineList = append(machineList, Utils.Generate(arg)...)
@@ -85,14 +95,14 @@ func (cli *DockerCli) CmdProvision(args ...string) error {
 
 	}
 
-	log.Debug(machineList)
+	log.Debugf("machines: %s", machineList)
 
 	if len(machineList) == 0 {
 		// return
 	}
 
 	// create libmachine's store
-	log.Debug(*machineStoragePath)
+	log.Debugf("storage: %s", *machineStoragePath)
 
 	certInfo := machine.GetCertInfo()
 
@@ -149,9 +159,6 @@ func (cli *DockerCli) CmdProvision(args ...string) error {
 			}
 		}
 
-		// url, _ := host.GetURL()
-		// fmt.Printf("\t%-20s%s\n", machineName, url)
-
 		// then, check status to be active
 		active, _ := host.IsActive()
 		if active == false {
@@ -161,17 +168,18 @@ func (cli *DockerCli) CmdProvision(args ...string) error {
 		}
 	}
 
-	fmt.Printf("%-16s%-30s%s\n", "NAME", "URL", "STATUS")
+	w := tabwriter.NewWriter(os.Stdout, 5, 1, 3, ' ', 0)
+	fmt.Fprintln(w, "NAME\tURL\tSTATE")
+
 	for _, machineName := range machineList {
 		host, err := provider.Get(machineName)
+		items := libmachine.GetHostListItems([]*libmachine.Host{host})
 		if err == nil {
 			url, _ := host.GetURL()
-			fmt.Printf("%-16s%-30s%s\n", machineName, url, "ready")
+			fmt.Fprintf(w, "%s\t%s\t%s\n", machineName, url, items[0].State)
 		}
 	}
-
-	// loop {}
-	//if everything is OK, fmt.Printf("checking %s ...\t ready\n", machine)
+	w.Flush()
 
 	return err
 }

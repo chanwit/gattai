@@ -55,7 +55,7 @@ elif [ "$(expr substr $(uname -s) 1 9)" == "CYGWIN_NT" ]; then
 fi
 
 if [ "$1" == "--cache" ]; then
-	go install github.com/chanwit/gattai/client
+	go install github.com/chanwit/gattai/gattai
 	exit 0
 fi
 
@@ -67,5 +67,5 @@ rm -Rf $VENDOR/pkg
 update_and_patch ../../docker/docker     001.patch
 update_and_patch ../../docker/libcompose 002.patch
 
-go install github.com/chanwit/gattai/client
+go install github.com/chanwit/gattai/gattai
 echo "Built successsfully"

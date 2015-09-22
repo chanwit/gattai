@@ -19,23 +19,23 @@ type Machine struct {
 	Options   Options
 }
 
-func ReadProvision(file string) (Provision, error) {
+func ReadProvision(file string) (*Provision, error) {
 	bytes, err := utils.ReadFile(file)
 	if err != nil {
-		return Provision{}, err
+		return nil, err
 	}
 
 	var p Provision
 	err = yaml.Unmarshal(bytes, &p)
 	if err != nil {
-		return Provision{}, err
+		return nil, err
 	}
 
 	log.Debugf("%s", p)
-	return p, nil
+	return &p, nil
 }
 
-func (p Provision) VerifyDrivers() error {
+func (p *Provision) VerifyDrivers() error {
 	// verify driver
 	for group, details := range p.Machines {
 		if details.Instances == 0 {

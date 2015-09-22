@@ -1,9 +1,4 @@
 machines:
-  fake:
-    driver: none
-    instances: 3
-    options:
-      url: tcp://1.2.3.4:2376
 
   kvstore:
     driver: digitalocean
@@ -17,6 +12,12 @@ machines:
       digitalocean-private-networking: false
       digitalocean-backups: false
       engine-install-url: "https://experimental.docker.com"
+
+  fake:
+    driver: none
+    instances: 3
+    options:
+      url: tcp://1.2.3.4:2376
 
   swarm-master:
     driver: digitalocean
