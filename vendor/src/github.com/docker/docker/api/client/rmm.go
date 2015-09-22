@@ -2,7 +2,9 @@ package client
 
 import (
 	"fmt"
+
 	log "github.com/Sirupsen/logrus"
+	"github.com/chanwit/gattai/machine"
 	Cli "github.com/docker/docker/cli"
 	"github.com/docker/machine/utils"
 )
@@ -20,8 +22,8 @@ func (cli *DockerCli) CmdRmm(args ...string) error {
 
 	isError := false
 
-	certInfo := GetCertInfo()
-	provider, err := GetProvider(utils.GetBaseDir(), certInfo)
+	certInfo := machine.GetCertInfo()
+	provider, err := machine.GetProvider(utils.GetBaseDir(), certInfo)
 	if err != nil {
 		return err
 	}

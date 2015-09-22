@@ -5,6 +5,8 @@ import (
 	"os"
 
 	log "github.com/Sirupsen/logrus"
+	"github.com/chanwit/gattai/machine"
+	Utils "github.com/chanwit/gattai/utils"
 	Cli "github.com/docker/docker/cli"
 	"github.com/docker/machine/utils"
 	"gopkg.in/yaml.v2"
@@ -27,7 +29,7 @@ func (cli *DockerCli) CmdActive(args ...string) error {
 
 	if len(args) == 0 {
 		envs := make(map[string]string)
-		bytes, err := readFile(ACTIVE_HOST_FILE)
+		bytes, err := Utils.ReadFile(ACTIVE_HOST_FILE)
 		if err != nil {
 			fmt.Println("There is no active host.")
 			return nil
@@ -51,9 +53,9 @@ func (cli *DockerCli) CmdActive(args ...string) error {
 
 	// _, err := readProvision(*provisionFilename)
 
-	certInfo := GetCertInfo()
+	certInfo := machine.GetCertInfo()
 
-	provider, err := GetProvider(*machineStoragePath, certInfo)
+	provider, err := machine.GetProvider(*machineStoragePath, certInfo)
 	if err != nil {
 		log.Error(err)
 	}

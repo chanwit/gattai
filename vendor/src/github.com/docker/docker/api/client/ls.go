@@ -9,6 +9,7 @@ import (
 	"text/tabwriter"
 
 	log "github.com/Sirupsen/logrus"
+	"github.com/chanwit/gattai/machine"
 	Cli "github.com/docker/docker/cli"
 	"github.com/docker/docker/opts"
 	"github.com/docker/docker/pkg/parsers/filters"
@@ -67,8 +68,8 @@ func (cli *DockerCli) CmdLs(args ...string) error {
 		options.Name = psFilterArgs["name"]
 	}
 
-	certInfo := GetCertInfo()
-	provider, err := GetProvider(utils.GetBaseDir(), certInfo)
+	certInfo := machine.GetCertInfo()
+	provider, err := machine.GetProvider(utils.GetBaseDir(), certInfo)
 	if err != nil {
 		log.Fatal(err)
 	}

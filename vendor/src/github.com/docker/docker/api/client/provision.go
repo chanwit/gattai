@@ -2,255 +2,20 @@ package client
 
 import (
 	"fmt"
-	"io/ioutil"
-	"os"
 	"path/filepath"
-	"regexp"
-	"strconv"
 	"strings"
 
 	log "github.com/Sirupsen/logrus"
+	"github.com/chanwit/gattai/machine"
+	Utils "github.com/chanwit/gattai/utils"
 	Cli "github.com/docker/docker/cli"
-	"github.com/docker/machine/drivers"
 	"github.com/docker/machine/libmachine"
 	"github.com/docker/machine/libmachine/auth"
 	"github.com/docker/machine/libmachine/engine"
 	"github.com/docker/machine/libmachine/swarm"
 	"github.com/docker/machine/ssh"
 	"github.com/docker/machine/utils"
-	"gopkg.in/yaml.v2"
 )
-
-type Provision struct {
-	Machines map[string]Machine
-}
-
-type Options map[string]interface{}
-
-type Machine struct {
-	Driver    string
-	Instances int
-	Options   Options
-}
-
-func (o Options) String(key string) string {
-	result := o[key]
-	if s, ok := result.(string); ok {
-		if s[0:1] == "$" {
-			env := os.Getenv(s[1:])
-			if env == "" {
-				return s
-			}
-			return env
-		}
-		return s
-	}
-	return ""
-}
-
-func (o Options) StringSlice(key string) []string {
-	result := o[key]
-	if s, ok := result.([]string); ok {
-		return s
-	} else if s, ok := result.(string); ok {
-		return []string{s}
-	}
-	return []string{}
-}
-
-func (o Options) Int(key string) int {
-	result := o[key]
-	if i, ok := result.(int); ok {
-		return i
-	} else if s, ok := result.(string); ok {
-		i, _ := strconv.Atoi(s)
-		return i
-	}
-	return 0
-}
-
-func (o Options) Bool(key string) bool {
-	result := o[key]
-	if b, ok := result.(bool); ok {
-		return b
-	} else if s, ok := result.(string); ok {
-		return s == "true" || s == "yes"
-	}
-	return false
-}
-
-func readFile(file string) ([]byte, error) {
-	result := []byte{}
-
-	log.Debugf("Opening file: %s", file)
-
-	if file == "-" {
-		if bytes, err := ioutil.ReadAll(os.Stdin); err != nil {
-			log.Debugf("Failed to read file from stdin: %v", err)
-			return nil, err
-		} else {
-			result = bytes
-		}
-	} else if file != "" {
-		if bytes, err := ioutil.ReadFile(file); os.IsNotExist(err) {
-			log.Debugf("Failed to find %s", file)
-			return nil, err
-		} else if err != nil {
-			log.Debugf("Failed to open %s", file)
-			return nil, err
-		} else {
-			result = bytes
-		}
-	}
-
-	return result, nil
-}
-
-func Generate(pattern string) []string {
-	re, _ := regexp.Compile(`\[(.+):(.+)\]`)
-	submatch := re.FindStringSubmatch(pattern)
-	if submatch == nil {
-		return []string{pattern}
-	}
-
-	from, err := strconv.Atoi(submatch[1])
-	if err != nil {
-		return []string{pattern}
-	}
-	to, err := strconv.Atoi(submatch[2])
-	if err != nil {
-		return []string{pattern}
-	}
-
-	template := re.ReplaceAllString(pattern, "%d")
-
-	var result []string
-	for val := from; val <= to; val++ {
-		entry := fmt.Sprintf(template, val)
-		result = append(result, entry)
-	}
-
-	return result
-}
-
-func setupCertificates(caCertPath, caKeyPath, clientCertPath, clientKeyPath string) error {
-	org := utils.GetUsername()
-	bits := 2048
-
-	if _, err := os.Stat(utils.GetMachineCertDir()); err != nil {
-		if os.IsNotExist(err) {
-			if err := os.MkdirAll(utils.GetMachineCertDir(), 0700); err != nil {
-				log.Fatalf("Error creating machine config dir: %s", err)
-			}
-		} else {
-			log.Fatal(err)
-		}
-	}
-
-	if _, err := os.Stat(caCertPath); os.IsNotExist(err) {
-		log.Infof("Creating CA: %s", caCertPath)
-
-		// check if the key path exists; if so, error
-		if _, err := os.Stat(caKeyPath); err == nil {
-			log.Fatalf("The CA key already exists.  Please remove it or specify a different key/cert.")
-		}
-
-		if err := utils.GenerateCACertificate(caCertPath, caKeyPath, org, bits); err != nil {
-			log.Infof("Error generating CA certificate: %s", err)
-		}
-	}
-
-	if _, err := os.Stat(clientCertPath); os.IsNotExist(err) {
-		log.Infof("Creating client certificate: %s", clientCertPath)
-
-		if _, err := os.Stat(utils.GetMachineCertDir()); err != nil {
-			if os.IsNotExist(err) {
-				if err := os.Mkdir(utils.GetMachineCertDir(), 0700); err != nil {
-					log.Fatalf("Error creating machine client cert dir: %s", err)
-				}
-			} else {
-				log.Fatal(err)
-			}
-		}
-
-		// check if the key path exists; if so, error
-		if _, err := os.Stat(clientKeyPath); err == nil {
-			log.Fatalf("The client key already exists.  Please remove it or specify a different key/cert.")
-		}
-
-		if err := utils.GenerateCert([]string{""}, clientCertPath, clientKeyPath, caCertPath, caKeyPath, org, bits); err != nil {
-			log.Fatalf("Error generating client certificate: %s", err)
-		}
-	}
-
-	return nil
-}
-
-func readProvision(file string) (Provision, error) {
-	bytes, err := readFile(file)
-	if err != nil {
-		return Provision{}, err
-	}
-
-	var p Provision
-	err = yaml.Unmarshal(bytes, &p)
-	if err != nil {
-		return Provision{}, err
-	}
-
-	log.Debugf("%s", p)
-	return p, nil
-}
-
-func (p Provision) VerifyDrivers() error {
-	// verify driver
-	for group, details := range p.Machines {
-		if details.Instances == 0 {
-			details.Instances = 1
-		} else if details.Instances < 0 {
-			return fmt.Errorf("group %s has incorrect instance: %d", group, details.Instances)
-		}
-		found := false
-		for _, driver := range drivers.GetDriverNames() {
-			if driver == details.Driver {
-				found = true
-				break
-			}
-		}
-		if found == false {
-			return fmt.Errorf("group %s uses non-existed driver: %s", group, details.Driver)
-		}
-	}
-
-	return nil
-}
-
-func GetCertInfo() libmachine.CertPathInfo {
-	caCertPath := filepath.Join(utils.GetMachineCertDir(), "ca.pem")
-	caKeyPath := filepath.Join(utils.GetMachineCertDir(), "ca-key.pem")
-	clientCertPath := filepath.Join(utils.GetMachineCertDir(), "cert.pem")
-	clientKeyPath := filepath.Join(utils.GetMachineCertDir(), "key.pem")
-
-	certInfo := libmachine.CertPathInfo{
-		CaCertPath:     caCertPath,
-		CaKeyPath:      caKeyPath,
-		ClientCertPath: clientCertPath,
-		ClientKeyPath:  clientKeyPath,
-	}
-
-	return certInfo
-}
-
-func GetProvider(storagePath string, certInfo libmachine.CertPathInfo) (*libmachine.Provider, error) {
-	store := libmachine.NewFilestore(
-		storagePath,
-		certInfo.CaCertPath,
-		certInfo.CaKeyPath)
-
-	provider, err := libmachine.New(store)
-
-	return provider, err
-}
 
 // Usage: gattai provision
 func (cli *DockerCli) CmdProvision(args ...string) error {
@@ -274,7 +39,7 @@ func (cli *DockerCli) CmdProvision(args ...string) error {
 
 	ssh.SetDefaultClient(ssh.Native)
 
-	p, err := readProvision(*provisionFilename)
+	p, err := machine.ReadProvision(*provisionFilename)
 	if err != nil {
 		return err
 	}
@@ -297,7 +62,7 @@ func (cli *DockerCli) CmdProvision(args ...string) error {
 
 		for group, details := range p.Machines {
 			pattern := fmt.Sprintf("%s-[1:%d]", group, details.Instances)
-			machineList = append(machineList, Generate(pattern)...)
+			machineList = append(machineList, Utils.Generate(pattern)...)
 		}
 
 	} else {
@@ -306,10 +71,10 @@ func (cli *DockerCli) CmdProvision(args ...string) error {
 			// if it's a group name, use all instances of the group
 			if details, exist := p.Machines[arg]; exist {
 				pattern := fmt.Sprintf("%s-[1:%d]", arg, details.Instances)
-				machineList = append(machineList, Generate(pattern)...)
+				machineList = append(machineList, Utils.Generate(pattern)...)
 			} else {
 				// assume it's a pattern
-				machineList = append(machineList, Generate(arg)...)
+				machineList = append(machineList, Utils.Generate(arg)...)
 			}
 
 			// TODO detect bad pattern and reject them
@@ -329,9 +94,9 @@ func (cli *DockerCli) CmdProvision(args ...string) error {
 	// create libmachine's store
 	log.Debug(*machineStoragePath)
 
-	certInfo := GetCertInfo()
+	certInfo := machine.GetCertInfo()
 
-	if err := setupCertificates(
+	if err := machine.SetupCertificates(
 		certInfo.CaCertPath,
 		certInfo.CaKeyPath,
 		certInfo.ClientCertPath,
@@ -339,7 +104,7 @@ func (cli *DockerCli) CmdProvision(args ...string) error {
 		log.Fatalf("Error generating certificates: %s", err)
 	}
 
-	provider, err := GetProvider(*machineStoragePath, certInfo)
+	provider, err := machine.GetProvider(*machineStoragePath, certInfo)
 
 	// check each machine existing
 	for _, machineName := range machineList {

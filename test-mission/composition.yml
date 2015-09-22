@@ -2,3 +2,12 @@
 #
 # Composition is simply a docker-compose.yml file.
 #
+
+# $ gattai provision kvstore
+# $ gattai active kvstore
+# $ gattai up -d kvstore
+#
+kvstore:
+  image: progrium/consul
+	net: host
+	command: --server -bootstrap-expect 1

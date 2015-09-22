@@ -1,25 +1,51 @@
 machines:
-    fake:
-        driver: none
-        instances: 3
-        options:
-            url: tcp://1.2.3.4:2376
+  fake:
+    driver: none
+    instances: 3
+    options:
+      url: tcp://1.2.3.4:2376
 
-    do:
-        driver: digitalocean
-        instances: 2
-        options:
-            digitalocean-access-token: $DIGITALOCEAN_ACCESS_TOKEN
-            digitalocean-ssh-user: root
-            digitalocean-image: ubuntu-14-04-x64
-            digitalocean-region: nyc3
-            digitalocean-size: 512mb
-            digitalocean-ipv6: false
-            digitalocean-private-networking: false
-            digitalocean-backups: false
-            engine-install-url: "https://experimental.docker.com"
+  kvstore:
+    driver: digitalocean
+    options:
+      digitalocean-access-token: $DIGITALOCEAN_ACCESS_TOKEN
+      digitalocean-ssh-user: root
+      digitalocean-image: ubuntu-14-04-x64
+      digitalocean-region: nyc3
+      digitalocean-size: 512mb
+      digitalocean-ipv6: false
+      digitalocean-private-networking: false
+      digitalocean-backups: false
+      engine-install-url: "https://experimental.docker.com"
 
-    aiyara:
-        driver: generic
-        instances: 50
+  swarm-master:
+    driver: digitalocean
+    options:
+      digitalocean-access-token: $DIGITALOCEAN_ACCESS_TOKEN
+      digitalocean-image: debian-8-x64
+      swarm-master: true
+      swarm-discovery: token://${swarm_token}
+      engine-label: "com.docker.network.driver.overlay.bind_interface=eth0"
+      engine-opt:
+        - "default-network overlay:multihost"
+        - "kv-store consul:${kvip}:8500"
+      engine-install-url: "https://experimental.docker.com"
+
+  ocean:
+    driver: digitalocean
+    instances: 2
+    options:
+      digitalocean-access-token: $DIGITALOCEAN_ACCESS_TOKEN
+      digitalocean-ssh-user: root
+      digitalocean-image: ubuntu-14-04-x64
+      digitalocean-region: nyc3
+      digitalocean-size: 512mb
+      digitalocean-ipv6: false
+      digitalocean-private-networking: false
+      digitalocean-backups: false
+      engine-install-url: "https://experimental.docker.com"
+
+  aiyara:
+    driver: generic
+    instances: 50
 
