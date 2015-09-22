@@ -42,6 +42,7 @@ elif [ "$(expr substr $(uname -s) 1 9)" == "CYGWIN_NT" ]; then
 		init.go      \
 		ls.go        \
 		provision.go \
+		rmm.go       \
 		up.go
 
 	DOCKER_VENDOR="$GOPATH/src/github.com/docker/docker/vendor"

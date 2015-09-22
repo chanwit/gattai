@@ -8,11 +8,11 @@ import (
 	"strings"
 	"text/tabwriter"
 
+	log "github.com/Sirupsen/logrus"
 	Cli "github.com/docker/docker/cli"
 	"github.com/docker/docker/opts"
 	"github.com/docker/docker/pkg/parsers/filters"
 	"github.com/docker/machine/libmachine"
-	"github.com/docker/machine/log"
 	"github.com/docker/machine/utils"
 	"github.com/skarademir/naturalsort"
 )
