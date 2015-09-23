@@ -2,6 +2,7 @@ package machine
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/chanwit/gattai/utils"
 	"github.com/docker/machine/drivers"
@@ -17,6 +18,26 @@ type Machine struct {
 	Driver    string
 	Instances int
 	Options   Options
+	Commands  []Command
+}
+
+type Command map[string]string
+
+func (c Command) Parse() map[string]string {
+	s := "" // string(c)
+	_ = strings.Split(s, "")
+	return nil
+}
+
+func parseProvision(bytes []byte) (*Provision, error) {
+	var p Provision
+	err := yaml.Unmarshal(bytes, &p)
+	if err != nil {
+		return nil, err
+	}
+
+	log.Debugf("%s", p)
+	return &p, nil
 }
 
 func ReadProvision(file string) (*Provision, error) {
@@ -25,14 +46,7 @@ func ReadProvision(file string) (*Provision, error) {
 		return nil, err
 	}
 
-	var p Provision
-	err = yaml.Unmarshal(bytes, &p)
-	if err != nil {
-		return nil, err
-	}
-
-	log.Debugf("%s", p)
-	return &p, nil
+	return parseProvision(bytes)
 }
 
 func (p *Provision) VerifyDrivers() error {

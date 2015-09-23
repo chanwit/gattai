@@ -45,8 +45,14 @@ machines:
       digitalocean-private-networking: false
       digitalocean-backups: false
       engine-install-url: "https://experimental.docker.com"
+    commands:
+    # TODO look at ansible commands
+      file: src=abc dst=/ state=present
 
   aiyara:
     driver: generic
     instances: 50
+    options:
+      generic-ip-address: "192.168.0.{{ add $i 2 }}"
+
 

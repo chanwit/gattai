@@ -206,7 +206,8 @@ func matchesState(host *libmachine.Host, states []string) bool {
 		if err != nil {
 			log.Warn(err)
 		}
-		if n == s.String() {
+
+		if strings.ToLower(n) == strings.ToLower(s.String()) {
 			return true
 		}
 	}
