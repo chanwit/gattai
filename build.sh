@@ -59,6 +59,8 @@ if [ "$1" == "--cache" ]; then
 	exit 0
 fi
 
+rm gattai_*
+
 go clean
 rm -Rf $GOPATH/pkg
 rm -Rf $VENDOR/pkg

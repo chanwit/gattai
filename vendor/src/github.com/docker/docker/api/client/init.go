@@ -30,7 +30,8 @@ machines:
   demo:
     driver: none
     instances: 2
-    url: "tcp://127.0.0.1:2375"
+    options:
+      url: "tcp://127.0.0.1:2375"
 
 `
 	_, err = os.Stat("provision.yml")
