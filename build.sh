@@ -68,4 +68,8 @@ update_and_patch ../../docker/docker     001.patch
 update_and_patch ../../docker/libcompose 002.patch
 
 go install github.com/chanwit/gattai/gattai
+gox -osarch="windows/amd64" github.com/chanwit/gattai/gattai
+gox -osarch="darwin/amd64" github.com/chanwit/gattai/gattai
+gox -osarch="linux/amd64" github.com/chanwit/gattai/gattai
+gox -osarch="linux/arm" github.com/chanwit/gattai/gattai
 echo "Built successsfully"
