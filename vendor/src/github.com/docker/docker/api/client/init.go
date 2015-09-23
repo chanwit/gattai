@@ -12,7 +12,7 @@ func (cli *DockerCli) CmdInit(args ...string) error {
 		return fmt.Errorf(".gattai is already existed")
 	}
 
-	err = os.Mkdir(".gattai", 0644)
+	err = os.Mkdir(".gattai", 0755)
 	if err != nil {
 		return err
 	}
@@ -27,6 +27,10 @@ machines:
 #    driver: digitalocean
 #    instances: 5
 #
+  demo:
+    driver: none
+    instances: 2
+    url: "tcp://127.0.0.1:2375"
 
 `
 	_, err = os.Stat("provision.yml")
