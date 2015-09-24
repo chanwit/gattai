@@ -17,12 +17,17 @@ func main() {
 	if strings.HasPrefix(code, `{"file":`) {
 		cmd := Cmd{}
 		if err := json.Unmarshal([]byte(code), &cmd); err != nil {
-			panic(err)
+			fmt.Println(err)
+			os.Exit(1)
 		}
 		err := cmd.File.Execute()
 		if err != nil {
-			panic(err)
+			fmt.Println(err)
+			os.Exit(1)
 		}
+
+		fmt.Println(`{"file":"ok"}`)
+		os.Exit(0)
 	}
-	fmt.Println("OK")
+
 }

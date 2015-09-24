@@ -78,7 +78,7 @@ func (cmd FileCmd) GetState() FileCmdState {
 	return value
 }
 
-func (cmd FileCmd) PreCondition() bool {
+func (cmd FileCmd) PreCondition() (bool, error) {
 	switch cmd.GetState() {
 	// case "file":
 	// case "link":
@@ -86,24 +86,25 @@ func (cmd FileCmd) PreCondition() bool {
 	// case "hard":
 	// case "touch":
 	case AbsentState:
-		_, err := os.Stat(cmd.GetPath())
+		path := cmd.GetPath()
+		_, err := os.Stat(path)
 		// err != nil means canot get state,
 		// so there is no file
 		if err != nil {
-			return false
+			return false, fmt.Errorf(`{"file":{"info": "%s is already absent"}}`, path)
 		} else {
 			// This means pre-condition is OK
 			// Process to delete
-			return true
+			return true, nil
 		}
 	}
 
-	panic("pre-condition")
+	return false, fmt.Errorf(`{"file":{"error": "pre-condition not met"}}`)
 }
 
 func (cmd FileCmd) Execute() error {
-	if cmd.PreCondition() == false {
-		return fmt.Errorf("pre-condition not met")
+	if _, err := cmd.PreCondition(); err != nil {
+		return err
 	}
 
 	switch cmd.GetState() {
@@ -119,25 +120,26 @@ func (cmd FileCmd) Execute() error {
 		}
 	}
 
-	if cmd.PostCondition() == false {
-		return fmt.Errorf("post-condition not met")
+	if _, err := cmd.PostCondition(); err != nil {
+		return err
 	}
 
 	return nil
 }
 
-func (cmd FileCmd) PostCondition() bool {
+func (cmd FileCmd) PostCondition() (bool, error) {
 	switch cmd.GetState() {
 	case AbsentState:
-		_, err := os.Stat(cmd.GetPath())
+		path := cmd.GetPath()
+		_, err := os.Stat(path)
 		if err != nil {
 			// file is deleted
 			// so return true
-			return true
+			return true, nil
 		} else {
-			return false
+			return false, fmt.Errorf(`{"file":{"error": "cannot change %s to be absent"}}`, path)
 		}
 	}
 
-	return false
+	return false, fmt.Errorf(`{"file":{"error": "post-condition not met"}}`)
 }
