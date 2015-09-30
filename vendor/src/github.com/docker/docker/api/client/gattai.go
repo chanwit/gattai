@@ -28,6 +28,10 @@ func (cli *DockerCli) CmdRmm(args ...string) error {
 	return client.DoRmm(cli, args...)
 }
 
+func (cli *DockerCli) CmdProvision(args ...string) error {
+	return client.DoProvision(cli, args...)
+}
+
 //
 // Composition
 //

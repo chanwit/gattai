@@ -24,10 +24,8 @@ import (
 	// "github.com/pkg/sftp"
 )
 
+// Usage: gattai provision
 func DoProvision(cli interface{}, args ...string) error {
-
-	// Usage: gattai provision
-	// func (cli *DockerCli) CmdProvision(args ...string) error {
 
 	cmd := Cli.Subcmd("provision",
 		[]string{"pattern"},
