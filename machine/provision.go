@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"strings"
 
+	log "github.com/Sirupsen/logrus"
 	"github.com/chanwit/gattai/utils"
 	"github.com/docker/machine/libmachine/drivers"
-	log "github.com/Sirupsen/logrus"
 	"gopkg.in/yaml.v2"
 )
 

@@ -36,4 +36,3 @@ func GetDefaultStore(storagePath string) *persist.Filestore {
 		CaPrivateKeyPath: certsDir,
 	}
 }
-
