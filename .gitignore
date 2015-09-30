@@ -4,3 +4,10 @@ vendor/pkg
 test-mission/.gattai-old/
 test-mission/.gattai/
 gattai_*
+
+gattai-proj.sublime-project
+gattai-proj.sublime-workspace
+gattai/agent/agent.exe
+gattai/agent/bindata.go
+
+vc/

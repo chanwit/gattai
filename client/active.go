@@ -6,15 +6,17 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/chanwit/gattai/machine"
-	Utils "github.com/chanwit/gattai/utils"
+	"github.com/chanwit/gattai/utils"
+	"github.com/chanwit/gattai/vc"
 	Cli "github.com/docker/docker/cli"
-	"github.com/docker/machine/utils"
 	"gopkg.in/yaml.v2"
 )
 
 const ACTIVE_HOST_FILE = ".gattai/.active_host"
 
-func (cli *DockerCli) CmdActive(args ...string) error {
+func DoActive(cli interface{}, args ...string) error {
+
+	// func (cli *DockerCli) CmdActive(args ...string) error {
 	cmd := Cli.Subcmd("active",
 		[]string{"machine name"},
 		"Set the machine specified as the active Docker host (-- to unset)", false)
@@ -29,7 +31,7 @@ func (cli *DockerCli) CmdActive(args ...string) error {
 
 	if len(args) == 0 {
 		envs := make(map[string]string)
-		bytes, err := Utils.ReadFile(ACTIVE_HOST_FILE)
+		bytes, err := utils.ReadFile(ACTIVE_HOST_FILE)
 		if err != nil {
 			fmt.Println("There is no active host.")
 			return nil
@@ -53,14 +55,14 @@ func (cli *DockerCli) CmdActive(args ...string) error {
 
 	// _, err := readProvision(*provisionFilename)
 
-	certInfo := machine.GetCertInfo()
+	// certInfo := machine.GetCertInfo()
 
-	provider, err := machine.GetProvider(*machineStoragePath, certInfo)
-	if err != nil {
+	store := machine.GetDefaultStore(*machineStoragePath) // GetProvider(*machineStoragePath, certInfo)
+	/*if err != nil {
 		log.Error(err)
-	}
+	}*/
 
-	host, err := provider.Get(args[0])
+	host, err := store.Load(args[0])
 	if err == nil {
 		f, err := os.Create(ACTIVE_HOST_FILE)
 		defer f.Close()
@@ -73,13 +75,15 @@ func (cli *DockerCli) CmdActive(args ...string) error {
 		fmt.Fprintf(f, "---\n")
 		fmt.Fprintf(f, "name: %s\n", host.Name)
 		fmt.Fprintf(f, "DOCKER_HOST: \"%s\"\n", url)
-		fmt.Fprintf(f, "DOCKER_CERT_PATH: %s\n", host.StorePath)
+		fmt.Fprintf(f, "DOCKER_CERT_PATH: %s\n", host.HostOptions.AuthOptions.CertDir)
 		fmt.Fprintf(f, "DOCKER_TLS_VERIFY: 1\n")
 
 		fmt.Println(args[0])
 	} else {
 		log.Error(err)
 	}
+
+	err = vc.Commit(ACTIVE_HOST_FILE, "update host file")
 
 	return err
 }

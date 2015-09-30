@@ -1,5 +1,6 @@
 package client
 
+/*
 import (
 	"fmt"
 	"os"
@@ -11,12 +12,13 @@ import (
 	"github.com/chanwit/gattai/machine"
 	Utils "github.com/chanwit/gattai/utils"
 	Cli "github.com/docker/docker/cli"
-	"github.com/docker/machine/libmachine"
+	"github.com/docker/machine/libmachine/drivers"
 	"github.com/docker/machine/libmachine/auth"
 	"github.com/docker/machine/libmachine/engine"
 	"github.com/docker/machine/libmachine/swarm"
-	"github.com/docker/machine/ssh"
-	"github.com/docker/machine/utils"
+	"github.com/docker/machine/libmachine/ssh"
+	"github.com/docker/machine/libmachine/mcnutils"
+	"github.com/pkg/sftp"
 )
 
 // Usage: gattai provision
@@ -106,26 +108,72 @@ func (cli *DockerCli) CmdProvision(args ...string) error {
 
 	certInfo := machine.GetCertInfo()
 
-	if err := machine.SetupCertificates(
-		certInfo.CaCertPath,
-		certInfo.CaKeyPath,
-		certInfo.ClientCertPath,
-		certInfo.ClientKeyPath); err != nil {
+	// TODO authOptions :=
+
+	if err := cert.BootstrapCertificates(authOptions); err != nil {
 		log.Fatalf("Error generating certificates: %s", err)
 	}
 
-	provider, err := machine.GetProvider(*machineStoragePath, certInfo)
+	store := machine.GetDefaultStore(*machineStoragePath)
 
 	// check each machine existing
 	for _, machineName := range machineList {
 
-		host, err := provider.Get(machineName)
+		host, err := store.Load(machineName) // provider.Get(machineName)
 		if err != nil {
 			if _, ok := err.(libmachine.ErrHostDoesNotExist); ok {
 				fmt.Printf("Machine '%s' not found, creating ...\n", machineName)
 				parts := strings.SplitN(machineName, "-", 2)
 				group := parts[0]
 				details := p.Machines[group]
+				c := details.Options
+
+				hostOptions := &host.HostOptions{
+					AuthOptions: &auth.AuthOptions{
+						CertDir:          mcndirs.GetMachineCertDir(),
+						CaCertPath:       certInfo.CaCertPath,
+						CaPrivateKeyPath: certInfo.CaPrivateKeyPath,
+						ClientCertPath:   certInfo.ClientCertPath,
+						ClientKeyPath:    certInfo.ClientKeyPath,
+						ServerCertPath:   filepath.Join(mcndirs.GetMachineDir(), name, "server.pem"),
+						ServerKeyPath:    filepath.Join(mcndirs.GetMachineDir(), name, "server-key.pem"),
+						StorePath:        filepath.Join(mcndirs.GetMachineDir(), name),
+					},
+					EngineOptions: &engine.EngineOptions{
+						ArbitraryFlags:   c.StringSlice("engine-opt"),
+						Env:              c.StringSlice("engine-env"),
+						InsecureRegistry: c.StringSlice("engine-insecure-registry"),
+						Labels:           c.StringSlice("engine-label"),
+						RegistryMirror:   c.StringSlice("engine-registry-mirror"),
+						StorageDriver:    c.String("engine-storage-driver"),
+						TlsVerify:        true,
+						InstallURL:       c.String("engine-install-url"),
+					},
+					SwarmOptions: &swarm.SwarmOptions{
+						IsSwarm:        c.Bool("swarm"),
+						Image:          c.String("swarm-image"),
+						Master:         c.Bool("swarm-master"),
+						Discovery:      c.String("swarm-discovery"),
+						Address:        c.String("swarm-addr"),
+						Host:           c.String("swarm-host"),
+						Strategy:       c.String("swarm-strategy"),
+						ArbitraryFlags: c.StringSlice("swarm-opt"),
+					},
+				}
+
+				driver, err := driverfactory.NewDriver(driverName, name, storePath)
+				if err != nil {
+					log.Fatalf("Error trying to get driver: %s", err)
+				}
+
+				h, err := store.NewHost(driver)
+				if err != nil {
+					log.Fatalf("Error getting new host: %s", err)
+				}
+
+				h.HostOptions = hostOptions
+
+				/*
 				// REF: docker/machine/commands/create.go#76
 				hostOptions := &libmachine.HostOptions{
 					AuthOptions: &auth.AuthOptions{
@@ -149,8 +197,11 @@ func (cli *DockerCli) CmdProvision(args ...string) error {
 						InstallURL: details.Options.String("engine-install-url"),
 					},
 					SwarmOptions: &swarm.SwarmOptions{},
-				}
-				host, err = provider.Create(machineName, details.Driver, hostOptions, details.Options)
+				}* /
+
+				// host :=
+				err := libmachine.Create(store, host)
+				// host, err = provider.Create(machineName, details.Driver, hostOptions, details.Options)
 				if err != nil {
 					log.Errorf("Error creating machine: %s", err)
 					log.Fatal("You will want to check the provider to make sure the machine and associated resources were properly removed.")
@@ -168,6 +219,12 @@ func (cli *DockerCli) CmdProvision(args ...string) error {
 		}
 	}
 
+	// post-provision state checks (commands:)
+	// for _, machineName := range machineList {
+	//	host, err := provider.Get(machineName)
+	//	// host.
+	// }
+
 	w := tabwriter.NewWriter(os.Stdout, 5, 1, 3, ' ', 0)
 	fmt.Fprintln(w, "NAME\tURL\tSTATE")
 
@@ -183,3 +240,4 @@ func (cli *DockerCli) CmdProvision(args ...string) error {
 
 	return err
 }
+*/

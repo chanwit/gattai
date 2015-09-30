@@ -6,7 +6,8 @@ import (
 )
 
 // Usage: gattai up
-func (cli *DockerCli) CmdUp(args ...string) error {
+func DoUp(cli interface{}, args ...string) error {
+	// func (cli *DockerCli) CmdUp(args ...string) error {
 	project, err := docker.NewProject(&docker.Context{
 		Context: project.Context{
 			ComposeFile: "composition.yml",

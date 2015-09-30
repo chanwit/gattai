@@ -1,12 +1,13 @@
 package client
 
+/*
 import (
 	"fmt"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/chanwit/gattai/machine"
 	Cli "github.com/docker/docker/cli"
-	"github.com/docker/machine/utils"
+	"github.com/docker/machine/libmachine/mcnutils"
 )
 
 func (cli *DockerCli) CmdRmm(args ...string) error {
@@ -43,3 +44,4 @@ func (cli *DockerCli) CmdRmm(args ...string) error {
 
 	return nil
 }
+*/

@@ -6,7 +6,7 @@ import (
 	"os"
 )
 
-func (cli *DockerCli) CmdInit(args ...string) error {
+func DoInit(cli interface{}, args ...string) error {
 	info, err := os.Stat(".gattai")
 	if err == nil && info.IsDir() {
 		return fmt.Errorf(".gattai is already existed")
