@@ -9,5 +9,3 @@ gattai-proj.sublime-project
 gattai-proj.sublime-workspace
 gattai/agent/agent.exe
 gattai/agent/bindata.go
-
-vc/

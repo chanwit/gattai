@@ -26,8 +26,6 @@ import (
 	"os"
 
 	log "github.com/Sirupsen/logrus"
-
-	"github.com/chanwit/gattai/vc"
 )
 
 var (
@@ -96,9 +94,6 @@ func readFile(file string) ([]byte, error) {
 }
 
 func main() {
-	vc.LoadLib()
-	defer vc.FreeLib()
-
 	dockerversion.VERSION = "0.1"
 	dockerversion.GITCOMMIT = "HEAD"
 
