@@ -24,6 +24,10 @@ func (cli *DockerCli) CmdLs(args ...string) error {
 	return client.DoLs(cli, args...)
 }
 
+func (cli *DockerCli) CmdRmm(args ...string) error {
+	return client.DoRmm(cli, args...)
+}
+
 //
 // Composition
 //

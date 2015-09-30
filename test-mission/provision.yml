@@ -25,7 +25,7 @@ machines:
       digitalocean-access-token: $DIGITALOCEAN_ACCESS_TOKEN
       digitalocean-image: debian-8-x64
       swarm-master: true
-      swarm-discovery: token://${swarm_token}
+      swarm-discovery: token://${SWARM_TOKEN}
       engine-label: "com.docker.network.driver.overlay.bind_interface=eth0"
       engine-opt:
         - "default-network overlay:multihost"

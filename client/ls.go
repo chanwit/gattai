@@ -96,7 +96,7 @@ func DoLs(cli interface{}, args ...string) error {
 	swarmInfo := make(map[string]string)
 
 	w := tabwriter.NewWriter(os.Stdout, 5, 1, 3, ' ', 0)
-	fmt.Fprintln(w, "NAME\tACTIVE\tDRIVER\tSTATE\tURL\tSWARM")
+	fmt.Fprintln(w, "NAME\tDRIVER\tSTATE\tURL")
 
 	for _, host := range hostList {
 		swarmOptions := host.HostOptions.SwarmOptions
@@ -114,21 +114,25 @@ func DoLs(cli interface{}, args ...string) error {
 	sortHostListItemsByName(items)
 
 	for _, item := range items {
-		activeString := "-"
-		if item.Active {
-			activeString = "*"
-		}
-
-		swarmInfo := ""
-
-		if item.SwarmOptions.Discovery != "" {
-			swarmInfo = swarmMasters[item.SwarmOptions.Discovery]
-			if item.SwarmOptions.Master {
-				swarmInfo = fmt.Sprintf("%s (master)", swarmInfo)
+		/*
+			activeString := "-"
+			if item.Active {
+				activeString = "*"
 			}
-		}
-		fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\n",
-			item.Name, activeString, item.DriverName, item.State, item.URL, swarmInfo)
+		*/
+
+		/*
+			swarmInfo := ""
+
+			if item.SwarmOptions.Discovery != "" {
+				swarmInfo = swarmMasters[item.SwarmOptions.Discovery]
+				if item.SwarmOptions.Master {
+					swarmInfo = fmt.Sprintf("%s (master)", swarmInfo)
+				}
+			}
+		*/
+		fmt.Fprintf(w, "%s\t%s\t%s\t%s\n",
+			item.Name /*activeString,*/, item.DriverName, item.State, item.URL)
 	}
 
 	w.Flush()

@@ -1,16 +1,16 @@
 package client
 
-/*
 import (
 	"fmt"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/chanwit/gattai/machine"
+	"github.com/chanwit/gattai/utils"
 	Cli "github.com/docker/docker/cli"
-	"github.com/docker/machine/libmachine/mcnutils"
 )
 
-func (cli *DockerCli) CmdRmm(args ...string) error {
+func DoRmm(cli interface{}, args ...string) error {
+
 	cmd := Cli.Subcmd("rmm", []string{"machines"}, "Remove machines", false)
 
 	force := cmd.Bool([]string{"f", "-force"}, false, "Force removing machines")
@@ -18,23 +18,21 @@ func (cli *DockerCli) CmdRmm(args ...string) error {
 	cmd.ParseFlags(args, true)
 
 	if len(cmd.Args()) == 0 {
-		return fmt.Errorf("You must specify a machine name")
+		return fmt.Errorf("You must specify a machine or pattern name")
 	}
 
 	isError := false
 
-	certInfo := machine.GetCertInfo()
-	provider, err := machine.GetProvider(utils.GetBaseDir(), certInfo)
-	if err != nil {
-		return err
-	}
+	store := machine.GetDefaultStore(utils.GetBaseDir())
 
-	for _, host := range cmd.Args() {
-		if err := provider.Remove(host, *force); err != nil {
-			log.Errorf("Error removing machine %s: %s", host, err)
-			isError = true
-		} else {
-			log.Infof("Successfully removed %s", host)
+	for _, pattern := range cmd.Args() {
+		for _, host := range utils.Generate(pattern) {
+			if err := store.Remove(host, *force); err != nil {
+				log.Errorf("Error removing machine %s: %s", host, err)
+				isError = true
+			} else {
+				log.Infof("Successfully removed %s", host)
+			}
 		}
 	}
 
@@ -44,4 +42,3 @@ func (cli *DockerCli) CmdRmm(args ...string) error {
 
 	return nil
 }
-*/
