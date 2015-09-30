@@ -16,7 +16,6 @@ const ACTIVE_HOST_FILE = ".gattai/.active_host"
 
 func DoActive(cli interface{}, args ...string) error {
 
-	// func (cli *DockerCli) CmdActive(args ...string) error {
 	cmd := Cli.Subcmd("active",
 		[]string{"machine name"},
 		"Set the machine specified as the active Docker host (-- to unset)", false)

@@ -1,6 +1,5 @@
 package client
 
-/*
 import (
 	"fmt"
 	"os"
@@ -12,17 +11,19 @@ import (
 	"github.com/chanwit/gattai/machine"
 	Utils "github.com/chanwit/gattai/utils"
 	Cli "github.com/docker/docker/cli"
-	"github.com/docker/machine/libmachine/drivers"
 	"github.com/docker/machine/libmachine/auth"
+	"github.com/docker/machine/libmachine/drivers"
 	"github.com/docker/machine/libmachine/engine"
-	"github.com/docker/machine/libmachine/swarm"
-	"github.com/docker/machine/libmachine/ssh"
 	"github.com/docker/machine/libmachine/mcnutils"
+	"github.com/docker/machine/libmachine/ssh"
+	"github.com/docker/machine/libmachine/swarm"
 	"github.com/pkg/sftp"
 )
 
-// Usage: gattai provision
-func (cli *DockerCli) CmdProvision(args ...string) error {
+func DoProvision(cli interface{}, args ...string) error {
+
+	// Usage: gattai provision
+	// func (cli *DockerCli) CmdProvision(args ...string) error {
 
 	cmd := Cli.Subcmd("provision",
 		[]string{"pattern"},
@@ -107,6 +108,13 @@ func (cli *DockerCli) CmdProvision(args ...string) error {
 	log.Debugf("storage: %s", *machineStoragePath)
 
 	certInfo := machine.GetCertInfo()
+	authOptions := &auth.AuthOptions{
+		CertDir:          mcndirs.GetMachineCertDir(),
+		CaCertPath:       certInfo.CaCertPath,
+		CaPrivateKeyPath: certInfo.CaPrivateKeyPath,
+		ClientCertPath:   certInfo.ClientCertPath,
+		ClientKeyPath:    certInfo.ClientKeyPath,
+	}
 
 	// TODO authOptions :=
 
@@ -173,32 +181,6 @@ func (cli *DockerCli) CmdProvision(args ...string) error {
 
 				h.HostOptions = hostOptions
 
-				/*
-				// REF: docker/machine/commands/create.go#76
-				hostOptions := &libmachine.HostOptions{
-					AuthOptions: &auth.AuthOptions{
-						CaCertPath:     certInfo.CaCertPath,
-						PrivateKeyPath: certInfo.CaKeyPath,
-						ClientCertPath: certInfo.ClientCertPath,
-						ClientKeyPath:  certInfo.ClientKeyPath,
-						ServerCertPath: filepath.Join(utils.GetMachineDir(), machineName, "server.pem"),
-						ServerKeyPath:  filepath.Join(utils.GetMachineDir(), machineName, "server-key.pem"),
-					},
-					EngineOptions: &engine.EngineOptions{
-						// TODO
-						// ArbitraryFlags:   c.StringSlice("engine-opt"),
-						// Env:              c.StringSlice("engine-env"),
-						// InsecureRegistry: c.StringSlice("engine-insecure-registry"),
-						// Labels:           c.StringSlice("engine-label"),
-						// RegistryMirror:   c.StringSlice("engine-registry-mirror"),
-						// StorageDriver:    c.String("engine-storage-driver"),
-						TlsVerify: true,
-						// TODO default values
-						InstallURL: details.Options.String("engine-install-url"),
-					},
-					SwarmOptions: &swarm.SwarmOptions{},
-				}* /
-
 				// host :=
 				err := libmachine.Create(store, host)
 				// host, err = provider.Create(machineName, details.Driver, hostOptions, details.Options)
@@ -240,4 +222,3 @@ func (cli *DockerCli) CmdProvision(args ...string) error {
 
 	return err
 }
-*/

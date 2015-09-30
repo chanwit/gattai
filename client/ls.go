@@ -114,25 +114,7 @@ func DoLs(cli interface{}, args ...string) error {
 	sortHostListItemsByName(items)
 
 	for _, item := range items {
-		/*
-			activeString := "-"
-			if item.Active {
-				activeString = "*"
-			}
-		*/
-
-		/*
-			swarmInfo := ""
-
-			if item.SwarmOptions.Discovery != "" {
-				swarmInfo = swarmMasters[item.SwarmOptions.Discovery]
-				if item.SwarmOptions.Master {
-					swarmInfo = fmt.Sprintf("%s (master)", swarmInfo)
-				}
-			}
-		*/
-		fmt.Fprintf(w, "%s\t%s\t%s\t%s\n",
-			item.Name /*activeString,*/, item.DriverName, item.State, item.URL)
+		fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", item.Name, item.DriverName, item.State, item.URL)
 	}
 
 	w.Flush()
