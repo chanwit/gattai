@@ -9,15 +9,19 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/chanwit/gattai/machine"
-	Utils "github.com/chanwit/gattai/utils"
+	"github.com/chanwit/gattai/utils"
 	Cli "github.com/docker/docker/cli"
+	"github.com/docker/machine/commands/mcndirs"
+	"github.com/docker/machine/drivers/driverfactory"
+	"github.com/docker/machine/libmachine"
 	"github.com/docker/machine/libmachine/auth"
-	"github.com/docker/machine/libmachine/drivers"
+	"github.com/docker/machine/libmachine/cert"
 	"github.com/docker/machine/libmachine/engine"
-	"github.com/docker/machine/libmachine/mcnutils"
+	"github.com/docker/machine/libmachine/host"
+	"github.com/docker/machine/libmachine/mcnerror"
 	"github.com/docker/machine/libmachine/ssh"
 	"github.com/docker/machine/libmachine/swarm"
-	"github.com/pkg/sftp"
+	// "github.com/pkg/sftp"
 )
 
 func DoProvision(cli interface{}, args ...string) error {
@@ -70,7 +74,7 @@ func DoProvision(cli interface{}, args ...string) error {
 
 		for group, details := range p.Machines {
 			pattern := fmt.Sprintf("%s-[1:%d]", group, details.Instances)
-			machineList = append(machineList, Utils.Generate(pattern)...)
+			machineList = append(machineList, utils.Generate(pattern)...)
 		}
 
 	} else {
@@ -83,11 +87,11 @@ func DoProvision(cli interface{}, args ...string) error {
 					machineList = append(machineList, arg)
 				} else {
 					pattern := fmt.Sprintf("%s-[1:%d]", arg, details.Instances)
-					machineList = append(machineList, Utils.Generate(pattern)...)
+					machineList = append(machineList, utils.Generate(pattern)...)
 				}
 			} else {
 				// assume it's a pattern
-				machineList = append(machineList, Utils.Generate(arg)...)
+				machineList = append(machineList, utils.Generate(arg)...)
 			}
 
 			// TODO detect bad pattern and reject them
@@ -109,7 +113,7 @@ func DoProvision(cli interface{}, args ...string) error {
 
 	certInfo := machine.GetCertInfo()
 	authOptions := &auth.AuthOptions{
-		CertDir:          mcndirs.GetMachineCertDir(),
+		CertDir:          filepath.Join(*machineStoragePath, "certs"),
 		CaCertPath:       certInfo.CaCertPath,
 		CaPrivateKeyPath: certInfo.CaPrivateKeyPath,
 		ClientCertPath:   certInfo.ClientCertPath,
@@ -125,13 +129,13 @@ func DoProvision(cli interface{}, args ...string) error {
 	store := machine.GetDefaultStore(*machineStoragePath)
 
 	// check each machine existing
-	for _, machineName := range machineList {
+	for _, name := range machineList {
 
-		host, err := store.Load(machineName) // provider.Get(machineName)
+		h, err := store.Load(name)
 		if err != nil {
-			if _, ok := err.(libmachine.ErrHostDoesNotExist); ok {
-				fmt.Printf("Machine '%s' not found, creating ...\n", machineName)
-				parts := strings.SplitN(machineName, "-", 2)
+			if _, ok := err.(mcnerror.ErrHostDoesNotExist); ok {
+				fmt.Printf("Machine '%s' not found, creating ...\n", name)
+				parts := strings.SplitN(name, "-", 2)
 				group := parts[0]
 				details := p.Machines[group]
 				c := details.Options
@@ -169,7 +173,7 @@ func DoProvision(cli interface{}, args ...string) error {
 					},
 				}
 
-				driver, err := driverfactory.NewDriver(driverName, name, storePath)
+				driver, err := driverfactory.NewDriver(details.Driver, name, *machineStoragePath)
 				if err != nil {
 					log.Fatalf("Error trying to get driver: %s", err)
 				}
@@ -182,7 +186,7 @@ func DoProvision(cli interface{}, args ...string) error {
 				h.HostOptions = hostOptions
 
 				// host :=
-				err := libmachine.Create(store, host)
+				err = libmachine.Create(store, h)
 				// host, err = provider.Create(machineName, details.Driver, hostOptions, details.Options)
 				if err != nil {
 					log.Errorf("Error creating machine: %s", err)
@@ -192,13 +196,8 @@ func DoProvision(cli interface{}, args ...string) error {
 			}
 		}
 
-		// then, check status to be active
-		active, _ := host.IsActive()
-		if active == false {
-			// if not set active
-			host.Start()
-			// check info
-		}
+		// TODO if not active
+		h.Start()
 	}
 
 	// post-provision state checks (commands:)
@@ -211,10 +210,10 @@ func DoProvision(cli interface{}, args ...string) error {
 	fmt.Fprintln(w, "NAME\tURL\tSTATE")
 
 	for _, machineName := range machineList {
-		host, err := provider.Get(machineName)
-		items := libmachine.GetHostListItems([]*libmachine.Host{host})
+		h, err := store.Load(machineName)
+		items := getHostListItems([]*host.Host{h})
 		if err == nil {
-			url, _ := host.GetURL()
+			url, _ := h.GetURL()
 			fmt.Fprintf(w, "%s\t%s\t%s\n", machineName, url, items[0].State)
 		}
 	}
