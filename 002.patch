@@ -1,31 +1,31 @@
 diff --git a/docker/container.go b/docker/container.go
-index 95b4e2b..794ef28 100644
+index ed7fb08..7af2ad1 100644
 --- a/docker/container.go
 +++ b/docker/container.go
-@@ -387,7 +387,7 @@ func (c *Container) Log() error {
+@@ -406,7 +406,7 @@ func (c *Container) Log() error {
  func (c *Container) pull(image string) error {
  	taglessRemote, tag := parsers.ParseRepositoryTag(image)
  	if tag == "" {
 -		image = utils.ImageReference(taglessRemote, tags.DEFAULTTAG)
 +		image = utils.ImageReference(taglessRemote, tags.DefaultTag)
  	}
- 
+
  	repoInfo, err := registry.ParseRepositoryInfo(taglessRemote)
 diff --git a/docker/convert.go b/docker/convert.go
-index 82aa04f..39e0c86 100644
+index b5fb765..f174681 100644
 --- a/docker/convert.go
 +++ b/docker/convert.go
-@@ -9,6 +9,7 @@ import (
+@@ -5,6 +5,7 @@ import (
+
+ 	"github.com/Sirupsen/logrus"
+ 	"github.com/docker/docker/pkg/nat"
++	"github.com/docker/docker/pkg/stringutils"
+ 	"github.com/docker/docker/runconfig"
  	"github.com/docker/libcompose/project"
  	"github.com/docker/libcompose/utils"
- 	"github.com/samalba/dockerclient"
-+	"github.com/docker/docker/pkg/stringutils"
- )
- 
- func Filter(vs []string, f func(string) bool) []string {
-@@ -80,25 +81,25 @@ func Convert(c *project.ServiceConfig) (*runconfig.Config, *runconfig.HostConfig
+@@ -84,27 +85,27 @@ func Convert(c *project.ServiceConfig) (*runconfig.Config, *runconfig.HostConfig
  	}
- 
+
  	config := &runconfig.Config{
 -		Entrypoint:   runconfig.NewEntrypoint(c.Entrypoint.Slice()...),
 +		Entrypoint:   stringutils.NewStrSlice(c.Entrypoint.Slice()...),
@@ -42,15 +42,20 @@ index 82aa04f..39e0c86 100644
  		OpenStdin:    c.StdinOpen,
  		WorkingDir:   c.WorkingDir,
 -		VolumeDriver: c.VolumeDriver,
+-		Volumes:      volumes,
 +		// TODO: VolumeDriver: c.VolumeDriver,
- 		Volumes:      volumes,
++		Volumes: volumes,
  	}
- 	host_config := &runconfig.HostConfig{
+ 	hostConfig := &runconfig.HostConfig{
  		VolumesFrom: c.VolumesFrom,
 -		CapAdd:      runconfig.NewCapList(c.CapAdd),
 -		CapDrop:     runconfig.NewCapList(c.CapDrop),
+-		CPUShares:   c.CPUShares,
+-		CpusetCpus:  c.CPUSet,
 +		CapAdd:      stringutils.NewStrSlice(c.CapAdd...),
 +		CapDrop:     stringutils.NewStrSlice(c.CapDrop...),
- 		CPUShares:   c.CpuShares,
- 		CpusetCpus:  c.CpuSet,
++		CPUShares:   c.CPUShares,
++		CpusetCpus:  c.CPUSet,
  		ExtraHosts:  c.ExtraHosts,
+ 		Privileged:  c.Privileged,
+ 		Binds:       Filter(c.Volumes, isBind),

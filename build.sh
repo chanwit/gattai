@@ -19,7 +19,10 @@ function update_and_patch {
 	local PROJECT_DIR=$1
 	local PATCH_FILE=$2
 
-	(cd $PROJECT_DIR  && git remote update && git reset --hard origin/master)
+	( cd $PROJECT_DIR  &&      \
+	  git reset --hard HEAD && \
+	  git remote update &&     \
+	  git reset --hard origin/master)
 
 	patch --dry-run -p1 -d $PROJECT_DIR -f < $PATCH_FILE
 	if [[ $? -eq 0 ]]; then
@@ -37,18 +40,29 @@ elif [ "$(expr substr $(uname -s) 1 10)" == "MINGW32_NT" ]; then
     echo "MinGW"
 elif [ "$(expr substr $(uname -s) 1 9)" == "CYGWIN_NT" ]; then
 	VENDOR=`cygpath -m $PWD`/vendor
-	hardlink_cygwin  \
-		active.go    \
-		init.go      \
-		ls.go        \
-		provision.go \
-		rmm.go       \
-		up.go
+	hardlink_cygwin gattai.go
+		# active.go    \
+		# init.go      \
+		# ls.go        \
+		# provision.go \
+		# rmm.go       \
+		# up.go
 
 	DOCKER_VENDOR="$GOPATH/src/github.com/docker/docker/vendor"
 	# MACHINE_VENDOR="$GOPATH/src/github.com/docker/machine/Godeps/_workspace"
 	# OLD_GOPATH=$GOPATH
 	if [ "$1" == "" ]; then
+		# reset docker
+		( cd $GOPATH/src/github.com/docker/docker  \
+          && git remote update                     \
+          && git reset --hard origin/master        )
+
+		# reset machine
+		( cd $GOPATH/src/github.com/docker/machine \
+          && git remote update                     \
+          && git reset --hard origin/master        )
+
+		# restore
 		(cd $GOPATH/src/github.com/docker/machine && $GOPATH/bin/godep restore)
 	fi
 	export GOPATH="$DOCKER_VENDOR;$GOPATH;$VENDOR"
@@ -70,8 +84,13 @@ update_and_patch ../../docker/docker     001.patch
 update_and_patch ../../docker/libcompose 002.patch
 
 go install github.com/chanwit/gattai/gattai
+if [[ $? -ne 0 ]]; then
+	echo  "Build failed"
+	exit 1
+fi
+
 gox -osarch="windows/amd64" github.com/chanwit/gattai/gattai
-gox -osarch="darwin/amd64" github.com/chanwit/gattai/gattai
-gox -osarch="linux/amd64" github.com/chanwit/gattai/gattai
-gox -osarch="linux/arm" github.com/chanwit/gattai/gattai
+gox -osarch="darwin/amd64"  github.com/chanwit/gattai/gattai
+gox -osarch="linux/amd64"   github.com/chanwit/gattai/gattai
+gox -osarch="linux/arm"     github.com/chanwit/gattai/gattai
 echo "Built successsfully"

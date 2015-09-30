@@ -7,8 +7,13 @@ import (
 	"regexp"
 	"strconv"
 
-	"github.com/docker/machine/log"
+	log "github.com/Sirupsen/logrus"
+	"github.com/docker/machine/commands/mcndirs"
 )
+
+func GetBaseDir() string {
+	return mcndirs.GetBaseDir()
+}
 
 func ReadFile(file string) ([]byte, error) {
 	result := []byte{}

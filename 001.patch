@@ -20,7 +20,7 @@ index 8e559fc..38e7d12 100644
  		cli.Stderr = os.Stderr
  	}
 -	fmt.Fprintf(cli.Stderr, "docker: '%s' is not a docker command.\nSee 'docker --help'.\n", command)
-+	fmt.Fprintf(cli.Stderr, "gattai: '%s' is not a docker command.\nSee 'gattai --help'.\n", command)
++	fmt.Fprintf(cli.Stderr, "gattai: '%s' is not a gattai command.\nSee 'gattai --help'.\n", command)
  	os.Exit(1)
  }
 

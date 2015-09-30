@@ -5,8 +5,8 @@ import (
 	"strings"
 
 	"github.com/chanwit/gattai/utils"
-	"github.com/docker/machine/drivers"
-	"github.com/docker/machine/log"
+	"github.com/docker/machine/libmachine/drivers"
+	log "github.com/Sirupsen/logrus"
 	"gopkg.in/yaml.v2"
 )
 

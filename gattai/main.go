@@ -2,7 +2,7 @@ package main
 
 import (
 	"github.com/docker/docker/autogen/dockerversion"
-	_ "github.com/docker/machine/drivers"
+	// _ "github.com/docker/machine/drivers"
 	_ "github.com/docker/machine/drivers/amazonec2"
 	_ "github.com/docker/machine/drivers/azure"
 	_ "github.com/docker/machine/drivers/digitalocean"
@@ -26,6 +26,8 @@ import (
 	"os"
 
 	log "github.com/Sirupsen/logrus"
+
+	"github.com/chanwit/gattai/vc"
 )
 
 var (
@@ -94,6 +96,9 @@ func readFile(file string) ([]byte, error) {
 }
 
 func main() {
+	vc.LoadLib()
+	defer vc.FreeLib()
+
 	dockerversion.VERSION = "0.1"
 	dockerversion.GITCOMMIT = "HEAD"
 
