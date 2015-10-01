@@ -47,11 +47,14 @@ var (
 		{"ls", "List machines"},
 		{"provision", "Provision a set of machines"},
 		{"rmm", "Remove machines"},
-		{"service", "Manage the Docker service on machines"},
-		{"ssh", "Run an SSH command on a set of machines"},
+		// {"service", "Manage the Docker service on machines"},
+		// {"ssh", "Run an SSH command on a set of machines"},
 
 		separator,
 		{"", backTabs + "Clustering:"},
+		{"token", "Manage a cluster's token on Docker Hub"},
+		// cluster
+		// master
 		{"disti", "Distribute images across the cluster"},
 		{"refresh", "Refresh a snapshot of the cluster information"},
 		{"select", "Select a candidate engine to place a container"},
