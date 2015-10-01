@@ -33,6 +33,14 @@ func (cli *DockerCli) CmdProvision(args ...string) error {
 }
 
 //
+// Clustering
+//
+
+func (cli *DockerCli) CmdToken(args ...string) error {
+	return client.DoToken(cli, args...)
+}
+
+//
 // Composition
 //
 
