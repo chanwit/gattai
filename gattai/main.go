@@ -52,12 +52,12 @@ var (
 
 		separator,
 		{"", backTabs + "Clustering:"},
-		{"token", "Manage a cluster's token on Docker Hub"},
-		// cluster
-		// master
 		{"disti", "Distribute images across the cluster"},
 		{"refresh", "Refresh a snapshot of the cluster information"},
 		{"select", "Select a candidate engine to place a container"},
+		{"token", "Manage a cluster's token on Docker Hub"},
+		// cluster
+		// master
 
 		separator,
 		{"", backTabs + "Composition:"},

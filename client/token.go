@@ -34,6 +34,10 @@ func DoToken(cli interface{}, args ...string) error {
 
 	cmd.ParseFlags(args, true)
 
+	if len(cmd.Args()) != 0 {
+		return fmt.Errorf("Invalid argument number")
+	}
+
 	if *delete {
 		token, err := readToken()
 		if err != nil {
