@@ -183,19 +183,22 @@ func DoProvision(cli interface{}, args ...string) error {
 
 				h.HostOptions = hostOptions
 
-				// host :=
+				if err := h.Driver.SetConfigFromFlags(details.Options); err != nil {
+					log.Fatalf("Error setting machine configuration from flags provided: %s", err)
+				}
+
 				err = libmachine.Create(store, h)
-				// host, err = provider.Create(machineName, details.Driver, hostOptions, details.Options)
 				if err != nil {
 					log.Errorf("Error creating machine: %s", err)
 					log.Fatal("You will want to check the provider to make sure the machine and associated resources were properly removed.")
 				}
 
 			}
+		} else {
+			// TODO if not active
+			h.Start()
 		}
 
-		// TODO if not active
-		h.Start()
 	}
 
 	// post-provision state checks (commands:)
