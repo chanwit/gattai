@@ -7,7 +7,6 @@ import (
 	log "github.com/Sirupsen/logrus"
 	"github.com/chanwit/gattai/machine"
 	"github.com/chanwit/gattai/utils"
-	"github.com/chanwit/gattai/vc"
 	Cli "github.com/docker/docker/cli"
 	"gopkg.in/yaml.v2"
 )
@@ -20,7 +19,6 @@ func DoActive(cli interface{}, args ...string) error {
 		[]string{"machine name"},
 		"Set the machine specified as the active Docker host (-- to unset)", false)
 
-	// TODO: EnvVar: "MACHINE_STORAGE_PATH"
 	machineStoragePath := cmd.String(
 		[]string{"s", "-storge-path"},
 		utils.GetBaseDir(),
@@ -28,7 +26,7 @@ func DoActive(cli interface{}, args ...string) error {
 
 	cmd.ParseFlags(args, true)
 
-	if len(args) == 0 {
+	if len(cmd.Args()) == 0 {
 		envs := make(map[string]string)
 		bytes, err := utils.ReadFile(ACTIVE_HOST_FILE)
 		if err != nil {
@@ -42,7 +40,7 @@ func DoActive(cli interface{}, args ...string) error {
 		}
 		return err
 
-	} else if len(args) == 1 && args[0] == "--" {
+	} else if len(cmd.Args()) == 1 && args[0] == "--" {
 		err := os.Remove(ACTIVE_HOST_FILE)
 		if err == nil {
 			fmt.Println("Unset the active host.")
@@ -52,16 +50,9 @@ func DoActive(cli interface{}, args ...string) error {
 
 	// ssh.SetDefaultClient(ssh.Native)
 
-	// _, err := readProvision(*provisionFilename)
+	store := machine.GetDefaultStore(*machineStoragePath)
 
-	// certInfo := machine.GetCertInfo()
-
-	store := machine.GetDefaultStore(*machineStoragePath) // GetProvider(*machineStoragePath, certInfo)
-	/*if err != nil {
-		log.Error(err)
-	}*/
-
-	host, err := store.Load(args[0])
+	host, err := store.Load(cmd.Args()[0])
 	if err == nil {
 		f, err := os.Create(ACTIVE_HOST_FILE)
 		defer f.Close()
@@ -74,15 +65,15 @@ func DoActive(cli interface{}, args ...string) error {
 		fmt.Fprintf(f, "---\n")
 		fmt.Fprintf(f, "name: %s\n", host.Name)
 		fmt.Fprintf(f, "DOCKER_HOST: \"%s\"\n", url)
-		fmt.Fprintf(f, "DOCKER_CERT_PATH: %s\n", host.HostOptions.AuthOptions.CertDir)
+		fmt.Fprintf(f, "DOCKER_CERT_PATH: %s\n", host.HostOptions.AuthOptions.StorePath)
 		fmt.Fprintf(f, "DOCKER_TLS_VERIFY: 1\n")
 
-		fmt.Println(args[0])
+		fmt.Println(cmd.Args()[0])
 	} else {
 		log.Error(err)
 	}
 
-	err = vc.Commit(ACTIVE_HOST_FILE, "update host file")
+	// err = vc.Commit(ACTIVE_HOST_FILE, "update host file")
 
 	return err
 }
