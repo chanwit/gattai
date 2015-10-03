@@ -1,6 +1,7 @@
 package client
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -65,45 +66,12 @@ func DoProvision(cli interface{}, args ...string) error {
 	// extract pattern
 	// fmt.Printf("args: %s\n",args)
 
-	machineList := []string{}
-
-	// list all
-	if len(cmd.Args()) == 0 {
-
-		for group, details := range p.Machines {
-			pattern := fmt.Sprintf("%s-[1:%d]", group, details.Instances)
-			machineList = append(machineList, utils.Generate(pattern)...)
-		}
-
-	} else {
-
-		for _, arg := range cmd.Args() {
-			// if it's a group name, use all instances of the group
-			if details, exist := p.Machines[arg]; exist {
-				// if it's the only instance, use arg as name
-				if details.Instances == 0 || details.Instances == 1 {
-					machineList = append(machineList, arg)
-				} else {
-					pattern := fmt.Sprintf("%s-[1:%d]", arg, details.Instances)
-					machineList = append(machineList, utils.Generate(pattern)...)
-				}
-			} else {
-				// assume it's a pattern
-				machineList = append(machineList, utils.Generate(arg)...)
-			}
-
-			// TODO detect bad pattern and reject them
-			// Correct pattern are:
-			//  - ${group}-[m:n]
-			//  - ${group}-n
-		}
-
-	}
+	machineList := p.GetMachineList(cmd.Args()...)
 
 	log.Debugf("machines: %s", machineList)
 
 	if len(machineList) == 0 {
-		// return
+		return errors.New("no machine in list")
 	}
 
 	// create libmachine's store
@@ -132,7 +100,7 @@ func DoProvision(cli interface{}, args ...string) error {
 		h, err := store.Load(name)
 		if err != nil {
 			if _, ok := err.(mcnerror.ErrHostDoesNotExist); ok {
-				fmt.Printf("Machine '%s' not found, creating ...\n", name)
+				fmt.Printf("Machine '%s' not found, creating...\n", name)
 				parts := strings.SplitN(name, "-", 2)
 				group := parts[0]
 				details := p.Machines[group]
@@ -195,12 +163,14 @@ func DoProvision(cli interface{}, args ...string) error {
 
 			}
 		} else {
-			// TODO if not active
+			fmt.Printf("Machine '%s' existed, starting...\n", name)
 			h.Start()
 		}
 
+		fmt.Println()
 	}
 
+	// TODO
 	// post-provision state checks (commands:)
 	// for _, machineName := range machineList {
 	//	host, err := provider.Get(machineName)

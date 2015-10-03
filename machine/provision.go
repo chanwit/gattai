@@ -15,6 +15,7 @@ type Provision struct {
 }
 
 type Machine struct {
+	From      string
 	Driver    string
 	Instances int
 	Options   Options
@@ -49,14 +50,31 @@ func ReadProvision(file string) (*Provision, error) {
 	return parseProvision(bytes)
 }
 
+// TODO change to verify
 func (p *Provision) VerifyDrivers() error {
-	// verify driver
+
 	for group, details := range p.Machines {
 		if details.Instances == 0 {
 			details.Instances = 1
 		} else if details.Instances < 0 {
 			return fmt.Errorf("group %s has incorrect instance: %d", group, details.Instances)
 		}
+
+		// inherit drive and details with From
+		if details.From != "" {
+			from := p.Machines[details.From]
+			details.Driver = from.Driver
+			if details.Options == nil {
+				details.Options = make(map[string]interface{})
+			}
+			for k, v := range from.Options {
+				details.Options[k] = v
+			}
+			copy(details.Commands, from.Commands)
+			p.Machines[group] = details
+		}
+
+		// verify driver
 		found := false
 		for _, driver := range drivers.GetDriverNames() {
 			if driver == details.Driver {
@@ -70,4 +88,39 @@ func (p *Provision) VerifyDrivers() error {
 	}
 
 	return nil
+}
+
+func (p *Provision) GetMachineList(patterns ...string) []string {
+
+	machineList := []string{}
+
+	// if patterns is blank, get all
+	args := []string{}
+	if len(patterns) == 0 {
+		for group, _ := range p.Machines {
+			args = append(args, group)
+		}
+	} else {
+		args = append(args, patterns...)
+	}
+
+	for _, arg := range args {
+
+		if details, exist := p.Machines[arg]; exist {
+			// if it's the only instance, use arg as name
+			if details.Instances == 0 || details.Instances == 1 {
+				machineList = append(machineList, arg)
+			} else {
+				pattern := fmt.Sprintf("%s-[1:%d]", arg, details.Instances)
+				machineList = append(machineList, utils.Generate(pattern)...)
+			}
+
+		} else {
+			// assume it's a pattern
+			machineList = append(machineList, utils.Generate(arg)...)
+		}
+
+	}
+
+	return machineList
 }
