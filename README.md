@@ -35,3 +35,6 @@ machines:
 
  After the `cluster` command, you can now use `gattai` docker commands to place containers on your cluster.
 
+See the cast below for `gattai` in action:
+
+![alt cast](https://dl.dropboxusercontent.com/u/381580/images/gattai_tp_03.gif)
