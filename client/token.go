@@ -11,6 +11,27 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
+func generateToken() (string, error) {
+	// Create a new token
+	f, err := os.Create(".gattai/.token")
+	defer f.Close()
+	if err != nil {
+		return "", err
+	}
+
+	discovery := &token.Discovery{}
+	discovery.Initialize("", 0, 0)
+	tk, err := discovery.CreateCluster()
+	if err != nil {
+		return "", err
+	}
+
+	fmt.Fprintf(f, "---\n")
+	fmt.Fprintf(f, "CLUSTER_TOKEN: %s\n", tk)
+
+	return tk, nil
+}
+
 func readToken() (string, error) {
 	envs := make(map[string]string)
 	bytes, err := utils.ReadFile(".gattai/.token")
@@ -26,6 +47,28 @@ func readToken() (string, error) {
 	return "", err
 }
 
+func deleteToken(tk string) error {
+	c := &http.Client{}
+	req, err := http.NewRequest("DELETE", "https://discovery.hub.docker.com/v1/clusters/"+tk, nil)
+	if err != nil {
+		return err
+	}
+	resp, err := c.Do(req)
+	if err != nil {
+		return err
+	}
+	if resp.StatusCode != 200 {
+		return fmt.Errorf("Error code: %d", resp.StatusCode)
+	}
+
+	err = os.Remove(".gattai/.token")
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func DoToken(cli interface{}, args ...string) error {
 
 	cmd := Cli.Subcmd("token", []string{}, "Create token for a cluster on Docker Hub", false)
@@ -39,25 +82,12 @@ func DoToken(cli interface{}, args ...string) error {
 	}
 
 	if *delete {
-		token, err := readToken()
+		tk, err := readToken()
 		if err != nil {
 			return err
 		}
 
-		c := &http.Client{}
-		req, err := http.NewRequest("DELETE", "https://discovery.hub.docker.com/v1/clusters/"+token, nil)
-		if err != nil {
-			return err
-		}
-		resp, err := c.Do(req)
-		if err != nil {
-			return err
-		}
-		if resp.StatusCode != 200 {
-			return fmt.Errorf("Error code: %d", resp.StatusCode)
-		}
-
-		err = os.Remove(".gattai/.token")
+		err = deleteToken(tk)
 		if err != nil {
 			return err
 		}
@@ -73,23 +103,7 @@ func DoToken(cli interface{}, args ...string) error {
 		return nil
 	}
 
-	// Create a new token
-	f, err := os.Create(".gattai/.token")
-	defer f.Close()
-	if err != nil {
-		return err
-	}
-
-	discovery := &token.Discovery{}
-	discovery.Initialize("", 0, 0)
-	token, err := discovery.CreateCluster()
-	if err != nil {
-		return err
-	}
-
-	fmt.Fprintf(f, "---\n")
-	fmt.Fprintf(f, "CLUSTER_TOKEN: %s\n", token)
-
-	fmt.Println(token)
+	tk, err = generateToken()
+	fmt.Println(tk)
 	return nil
 }
