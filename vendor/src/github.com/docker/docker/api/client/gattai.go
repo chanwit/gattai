@@ -40,6 +40,10 @@ func (cli *DockerCli) CmdToken(args ...string) error {
 	return client.DoToken(cli, args...)
 }
 
+func (cli *DockerCli) CmdCluster(args ...string) error {
+	return client.DoCluster(cli, args...)
+}
+
 func (cli *DockerCli) CmdHtop(args ...string) error {
 	return client.DoHtop(cli, args...)
 }
