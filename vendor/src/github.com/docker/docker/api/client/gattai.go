@@ -32,6 +32,10 @@ func (cli *DockerCli) CmdProvision(args ...string) error {
 	return client.DoProvision(cli, args...)
 }
 
+func (cli *DockerCli) CmdSsh(args ...string) error {
+	return client.DoSsh(cli, args...)
+}
+
 //
 // Clustering
 //
