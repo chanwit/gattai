@@ -100,7 +100,17 @@ func (p *Provision) verifyDrivers() error {
 	return nil
 }
 
+func preSplit(patterns ...string) []string {
+	result := []string{}
+	for _, p := range patterns {
+		result = append(result, strings.Split(p, ",")...)
+	}
+	return result
+}
+
 func (p *Provision) GetMachineList(patterns ...string) []string {
+
+	patterns = preSplit(patterns...)
 
 	machineList := []string{}
 
