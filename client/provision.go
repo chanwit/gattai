@@ -20,7 +20,6 @@ import (
 	"github.com/docker/machine/libmachine/engine"
 	"github.com/docker/machine/libmachine/host"
 	"github.com/docker/machine/libmachine/mcnerror"
-	"github.com/docker/machine/libmachine/ssh"
 	"github.com/docker/machine/libmachine/swarm"
 	// "github.com/pkg/sftp"
 )
@@ -46,18 +45,7 @@ func DoProvision(cli interface{}, args ...string) error {
 
 	cmd.ParseFlags(args, true)
 
-	ssh.SetDefaultClient(ssh.Native)
-
 	p, err := machine.ReadProvision(*provisionFilename)
-	if err != nil {
-		log.Debugf("err: %s", err)
-		return err
-	}
-
-	// TODO verify .gattai
-	// if not, return err
-
-	err = p.VerifyDrivers()
 	if err != nil {
 		log.Debugf("err: %s", err)
 		return err

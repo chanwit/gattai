@@ -157,15 +157,6 @@ func DoCluster(cli interface{}, args ...string) error {
 		return err
 	}
 
-	// TODO verify .gattai
-	// if not, return err
-
-	err = p.VerifyDrivers()
-	if err != nil {
-		log.Debugf("err: %s", err)
-		return err
-	}
-
 	fmt.Printf("Use discovery token://%s\n", token)
 
 	// start

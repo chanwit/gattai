@@ -47,11 +47,21 @@ func ReadProvision(file string) (*Provision, error) {
 		return nil, err
 	}
 
-	return parseProvision(bytes)
+	p, err := parseProvision(bytes)
+	if err != nil {
+		return nil, err
+	}
+
+	err = p.verifyDrivers()
+	if err != nil {
+		return nil, err
+	}
+
+	return p, nil
 }
 
 // TODO change to verify
-func (p *Provision) VerifyDrivers() error {
+func (p *Provision) verifyDrivers() error {
 
 	for group, details := range p.Machines {
 		if details.Instances == 0 {
