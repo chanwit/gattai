@@ -24,6 +24,8 @@ func DoActive(cli interface{}, args ...string) error {
 		utils.GetBaseDir(),
 		"Configure Docker Machine's storage path")
 
+	master := cmd.Bool([]string{"m", "-master"}, false, "Active host is a Docker Swarm manager?")
+
 	cmd.ParseFlags(args, true)
 
 	if len(cmd.Args()) == 0 {
@@ -59,10 +61,15 @@ func DoActive(cli interface{}, args ...string) error {
 		}
 
 		// save active config
-		url, _ := host.GetURL()
 		fmt.Fprintf(f, "---\n")
 		fmt.Fprintf(f, "name: %s\n", host.Name)
-		fmt.Fprintf(f, "DOCKER_HOST: \"%s\"\n", url)
+		if *master {
+			ip, _ := host.Driver.GetIP()
+			fmt.Fprintf(f, "DOCKER_HOST: \"tcp://%s:3376\"\n", ip)
+		} else {
+			url, _ := host.GetURL()
+			fmt.Fprintf(f, "DOCKER_HOST: \"%s\"\n", url)
+		}
 		fmt.Fprintf(f, "DOCKER_CERT_PATH: %s\n", host.HostOptions.AuthOptions.StorePath)
 		fmt.Fprintf(f, "DOCKER_TLS_VERIFY: 1\n")
 
