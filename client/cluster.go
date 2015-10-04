@@ -6,12 +6,12 @@ import (
 	"os/exec"
 	"path"
 
+	log "github.com/Sirupsen/logrus"
 	"github.com/chanwit/gattai/machine"
 	"github.com/chanwit/gattai/utils"
 	Cli "github.com/docker/docker/cli"
 	"github.com/docker/machine/libmachine/auth"
 	"github.com/docker/machine/libmachine/host"
-	"github.com/docker/machine/libmachine/log"
 	"github.com/docker/machine/libmachine/provision"
 )
 

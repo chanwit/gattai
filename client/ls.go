@@ -10,9 +10,9 @@ import (
 	"text/tabwriter"
 	"time"
 
+	log "github.com/Sirupsen/logrus"
 	"github.com/docker/machine/libmachine/drivers"
 	"github.com/docker/machine/libmachine/host"
-	"github.com/docker/machine/libmachine/log"
 	"github.com/docker/machine/libmachine/persist"
 	"github.com/docker/machine/libmachine/state"
 	"github.com/docker/machine/libmachine/swarm"
