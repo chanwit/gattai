@@ -17,6 +17,7 @@ import (
 	_ "github.com/docker/machine/drivers/vmwarefusion"
 	_ "github.com/docker/machine/drivers/vmwarevcloudair"
 	_ "github.com/docker/machine/drivers/vmwarevsphere"
+	"github.com/docker/machine/libmachine/ssh"
 
 	_ "github.com/docker/libcompose"
 	_ "github.com/docker/machine/libmachine"
@@ -105,6 +106,7 @@ func (s *SimpleFormatter) Format(entry *log.Entry) ([]byte, error) {
 }
 
 func main() {
+	ssh.SetDefaultClient(ssh.Native)
 	log.SetFormatter(&SimpleFormatter{})
 	dockerversion.VERSION = "0.1"
 	dockerversion.GITCOMMIT = "HEAD"

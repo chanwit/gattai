@@ -48,8 +48,6 @@ func DoActive(cli interface{}, args ...string) error {
 		return err
 	}
 
-	// ssh.SetDefaultClient(ssh.Native)
-
 	store := machine.GetDefaultStore(*machineStoragePath)
 
 	host, err := store.Load(cmd.Args()[0])
