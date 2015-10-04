@@ -151,12 +151,12 @@ func DoProvision(cli interface{}, args ...string) error {
 
 			}
 		} else {
-			fmt.Printf("Machine '%s' existed, starting...\n", name)
+			fmt.Printf("Machine '%s' exists, starting...\n", name)
 			h.Start()
 		}
-
-		fmt.Println()
 	}
+
+	fmt.Println()
 
 	// TODO
 	// post-provision state checks (commands:)
