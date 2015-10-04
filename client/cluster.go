@@ -30,8 +30,6 @@ func setRemoteAuthOptions(p provision.Provisioner) auth.AuthOptions {
 
 func swarmManage(h *host.Host, image string, token string) error {
 
-	fmt.Printf("%s manage/", h.Name)
-
 	provisioner, err := provision.DetectProvisioner(h.Driver)
 	dockerDir := provisioner.GetDockerOptionsDir()
 	authOptions := setRemoteAuthOptions(provisioner)
@@ -73,7 +71,7 @@ func swarmManage(h *host.Host, image string, token string) error {
 
 	err = cmd.Run()
 	if err == nil {
-		fmt.Printf("Manager '%s' started successfully.\n", h.Name)
+		fmt.Printf("Manager '%s' started successfully...\n", h.Name)
 	}
 
 	return err
@@ -123,7 +121,7 @@ func swarmJoin(name string, image string, token string) error {
 
 	err = cmd.Run()
 	if err == nil {
-		fmt.Printf("Machine '%s' joined cluster.\n", name)
+		fmt.Printf("Machine '%s' joined cluster...\n", name)
 	}
 
 	return err
@@ -135,6 +133,7 @@ func DoCluster(cli interface{}, args ...string) error {
 
 	master := cmd.String([]string{"m", "-master"}, "", "Configure the cluster masters")
 	image := cmd.String([]string{"i", "-image"}, "swarm", "Specify Docker Swarm image")
+	skipProvision := cmd.Bool([]string{"P", "-skip-provision"}, false, "Skip automatic provision before forming the cluster")
 
 	cmd.ParseFlags(args, true)
 
@@ -142,7 +141,19 @@ func DoCluster(cli interface{}, args ...string) error {
 		return fmt.Errorf("Master machine is required.")
 	}
 
-	// generate token
+	// do provision if required
+	if *skipProvision == false {
+		err := DoProvision(cli, append([]string{*master}, cmd.Args()...)...)
+		if err != nil {
+			return err
+		}
+
+		fmt.Println()
+	}
+
+	// Read existing token
+	// If not existed, generate one
+	// TODO support other discoveries
 	token, err := readToken()
 	if err != nil {
 		token, err = generateToken()
@@ -192,7 +203,7 @@ func DoCluster(cli interface{}, args ...string) error {
 		fmt.Fprintf(f, "DOCKER_HOST: \"tcp://%s:%d\"\n", ip, 3376)
 		fmt.Fprintf(f, "DOCKER_CERT_PATH: %s\n", h.HostOptions.AuthOptions.StorePath)
 		fmt.Fprintf(f, "DOCKER_TLS_VERIFY: 1\n")
-		fmt.Printf("Active host is now set to: '%s' (swarm).\n", h.Name)
+		fmt.Printf("Active host is now set to '%s' (swarm).\n", h.Name)
 	}
 
 	return nil
