@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"text/tabwriter"
@@ -21,15 +22,79 @@ import (
 	"github.com/docker/machine/libmachine/host"
 	"github.com/docker/machine/libmachine/mcnerror"
 	"github.com/docker/machine/libmachine/swarm"
+	"github.com/mattn/go-shellwords"
 	// "github.com/pkg/sftp"
 )
+
+func configureNetwork(kvstore, firstMachine *host.Host, opt machine.Options) (machine.Options, error) {
+	//   engine-label:
+	//     - "com.docker.network.driver.overlay.bind_interface=eth0"
+	//     - "com.docker.network.driver.overlay.neighbor_ip=${NODE_1_IP}"
+	//   engine-opt:
+	//     - "default-network overlay:multihost"
+	//     - "kv-store consul:${KVSTORE_IP}:8500"
+
+	labels := opt.StringSlice("engine-label")
+	labels = append(labels, "com.docker.network.driver.overlay.bind_interface=eth0")
+	if firstMachine != nil {
+		ip, err := firstMachine.Driver.GetIP()
+		if err != nil {
+			return nil, err
+		}
+		labels = append(labels, "com.docker.network.driver.overlay.neighbor_ip="+ip)
+	}
+
+	opts := opt.StringSlice("engine-opt")
+	opts = append(opts, "default-network overlay:multihost")
+	ip, err := kvstore.Driver.GetIP()
+	if err != nil {
+		return nil, err
+	}
+	opts = append(opts, "cluster-store consul://"+ip+":8500")
+
+	opt["engine-label"] = labels
+	opt["engine-opt"] = opts
+
+	return opt, nil
+}
+
+func engineExecute(h *host.Host, line string) error {
+	p := shellwords.NewParser()
+	args, err := p.Parse(line)
+	if err != nil {
+		return err
+	}
+
+	url, err := h.GetURL()
+	if err != nil {
+		return err
+	}
+
+	args = append([]string{
+		"-H", url,
+		"--tlscacert=" + h.HostOptions.AuthOptions.CaCertPath,
+		"--tlscert=" + h.HostOptions.AuthOptions.ClientCertPath,
+		"--tlskey=" + h.HostOptions.AuthOptions.ClientKeyPath,
+		"--tlsverify=true"}, args...)
+
+	cmd := exec.Command(os.Args[0], args...)
+	log.Debugf("[engineExecute] Executing: %s", cmd)
+
+	b, err := cmd.CombinedOutput()
+	if err != nil {
+		fmt.Print(string(b))
+		return err
+	}
+
+	return nil
+}
 
 // Usage: gattai provision
 func DoProvision(cli interface{}, args ...string) error {
 
 	cmd := Cli.Subcmd("provision",
-		[]string{"pattern"},
-		"Machine patterns, e.g. machine-[1:10]",
+		[]string{"PATTERNS"},
+		"Provision a set of machines. Patterns, e.g. machine-[1:10], are allowed.",
 		false)
 
 	provisionFilename := cmd.String(
@@ -42,6 +107,8 @@ func DoProvision(cli interface{}, args ...string) error {
 		[]string{"s", "-storge-path"},
 		utils.GetBaseDir(),
 		"Configure Docker Machine's storage path")
+
+	quiet := cmd.Bool([]string{"q", "-quiet"}, false, "Do not list machines at the end of provisioning")
 
 	cmd.ParseFlags(args, true)
 
@@ -82,17 +149,51 @@ func DoProvision(cli interface{}, args ...string) error {
 
 	store := machine.GetDefaultStore(*machineStoragePath)
 
+	spacing := len(machineList) > 1
+
 	// check each machine existing
 	for _, name := range machineList {
+
+		parts := strings.SplitN(name, "-", 2)
+		group := parts[0]
+		details := p.Machines[group]
 
 		h, err := store.Load(name)
 		if err != nil {
 			if _, ok := err.(mcnerror.ErrHostDoesNotExist); ok {
 				fmt.Printf("Machine '%s' not found, creating...\n", name)
-				parts := strings.SplitN(name, "-", 2)
-				group := parts[0]
-				details := p.Machines[group]
-				c := details.Options
+				spacing = true
+
+				c := machine.Options(make(map[string]interface{}))
+				for k, v := range details.Options {
+					c[k] = v
+				}
+
+				if details.Network != "" && details.Network != "none" {
+					kvstoreName := details.NetworkKvstore
+					if kvstoreName == "" {
+						return errors.New("No kv-store specified")
+					}
+					kvstore, err := store.Load(kvstoreName)
+					if err != nil {
+						return err
+					}
+					firstMachineName := fmt.Sprintf("%s-%d", group, 1)
+					var firstMachine *host.Host
+					if firstMachineName != name {
+						firstMachine, err = store.Load(firstMachineName)
+						if err != nil {
+							return err
+						}
+					}
+
+					c, err = configureNetwork(kvstore, firstMachine, c)
+					if err != nil {
+						return err
+					}
+				}
+
+				//spew.Dump(c)
 
 				hostOptions := &host.HostOptions{
 					AuthOptions: &auth.AuthOptions{
@@ -127,12 +228,17 @@ func DoProvision(cli interface{}, args ...string) error {
 					},
 				}
 
+				// spew.Dump(hostOptions)
+
 				driver, err := driverfactory.NewDriver(details.Driver, name, *machineStoragePath)
 				if err != nil {
 					log.Fatalf("Error trying to get driver: %s", err)
 				}
 
-				h, err := store.NewHost(driver)
+				// TODO populate Env Vars from all hosts
+				// to use with .SetConfigFromFlags
+
+				h, err = store.NewHost(driver)
 				if err != nil {
 					log.Fatalf("Error getting new host: %s", err)
 				}
@@ -153,10 +259,34 @@ func DoProvision(cli interface{}, args ...string) error {
 		} else {
 			fmt.Printf("Machine '%s' exists, starting...\n", name)
 			h.Start()
+			spacing = false
 		}
+		// TODO delete all containers during re-provision?
+
+		if details.PostProvision != nil && len(details.PostProvision) > 0 {
+			fmt.Println("Processing post-provision commands...")
+			for _, post := range details.PostProvision {
+				log.Debugf("post-provision: %s", post)
+				if strings.HasPrefix(post, "docker") {
+					err := engineExecute(h, strings.TrimSpace(post[6:]))
+					if err != nil {
+						return err
+					}
+				}
+			}
+		}
+
+		if spacing {
+			if len(machineList) > 1 {
+				fmt.Println()
+			}
+		}
+
 	}
 
-	fmt.Println()
+	if !spacing {
+		fmt.Println()
+	}
 
 	// TODO
 	// post-provision state checks (commands:)
@@ -165,18 +295,20 @@ func DoProvision(cli interface{}, args ...string) error {
 	//	// host.
 	// }
 
-	w := tabwriter.NewWriter(os.Stdout, 5, 1, 3, ' ', 0)
-	fmt.Fprintln(w, "NAME\tURL\tSTATE")
+	if *quiet == false {
+		w := tabwriter.NewWriter(os.Stdout, 5, 1, 3, ' ', 0)
+		fmt.Fprintln(w, "NAME\tURL\tSTATE")
 
-	for _, machineName := range machineList {
-		h, err := store.Load(machineName)
-		items := getHostListItems([]*host.Host{h})
-		if err == nil {
-			url, _ := h.GetURL()
-			fmt.Fprintf(w, "%s\t%s\t%s\n", machineName, url, items[0].State)
+		for _, machineName := range machineList {
+			h, err := store.Load(machineName)
+			items := getHostListItems([]*host.Host{h})
+			if err == nil {
+				url, _ := h.GetURL()
+				fmt.Fprintf(w, "%s\t%s\t%s\n", machineName, url, items[0].State)
+			}
 		}
+		w.Flush()
 	}
-	w.Flush()
 
 	return err
 }
