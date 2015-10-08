@@ -9,14 +9,17 @@ import (
 	"github.com/chanwit/gattai/machine"
 	"github.com/chanwit/gattai/utils"
 	Cli "github.com/docker/docker/cli"
+	"github.com/docker/machine/libmachine/ssh"
 	"github.com/docker/machine/libmachine/state"
 )
 
 func DoSsh(cli interface{}, args ...string) error {
 
+	ssh.SetDefaultClient(ssh.External)
+
 	cmd := Cli.Subcmd("ssh",
-		[]string{"name commands"},
-		"Run ssh commands", false)
+		[]string{"MACHINES COMMAND"},
+		"Run SSH commands on machines specified. Use - to run SSH on the active host.", false)
 
 	cmd.ParseFlags(args, true)
 
