@@ -38,7 +38,17 @@ func DoSsh(cli interface{}, args ...string) error {
 	}
 
 	// TODO if ssh -all
-	machineList := p.GetMachineList(pattern)
+
+	var machineList []string
+	if pattern == "-" {
+		name, err := GetActiveHostName()
+		if err != nil {
+			return err
+		}
+		machineList = []string{name}
+	} else {
+		machineList = p.GetMachineList(pattern)
+	}
 
 	if len(machineList) == 1 && len(cmd.Args()) == 1 {
 		host, err := store.Load(machineList[0])

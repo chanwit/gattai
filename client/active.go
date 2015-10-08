@@ -1,6 +1,7 @@
 package client
 
 import (
+	"errors"
 	"fmt"
 	"os"
 
@@ -12,6 +13,21 @@ import (
 )
 
 const ACTIVE_HOST_FILE = ".gattai/.active_host"
+
+func GetActiveHostName() (string, error) {
+	envs := make(map[string]string)
+	bytes, err := utils.ReadFile(ACTIVE_HOST_FILE)
+	if err != nil {
+		return "", errors.New("There is no active host.")
+	}
+
+	err = yaml.Unmarshal(bytes, &envs)
+	if err == nil {
+		return envs["name"], nil
+	}
+
+	return "", err
+}
 
 func DoActive(cli interface{}, args ...string) error {
 
@@ -26,26 +42,22 @@ func DoActive(cli interface{}, args ...string) error {
 
 	master := cmd.Bool([]string{"m", "-master"}, false, "Active host is a Docker Swarm manager?")
 
+	insecure := cmd.Bool([]string{"i", "-insecure"}, false, "Set the host active without TLS verification over 2375")
+
 	cmd.ParseFlags(args, true)
 
-	if len(cmd.Args()) == 0 {
-		envs := make(map[string]string)
-		bytes, err := utils.ReadFile(ACTIVE_HOST_FILE)
-		if err != nil {
-			fmt.Println("There is no active host.")
-			return nil
-		}
-
-		err = yaml.Unmarshal(bytes, &envs)
-		if err == nil {
-			fmt.Println(envs["name"])
-		}
-		return err
-
-	} else if len(cmd.Args()) == 1 && args[0] == "--" {
+	if len(cmd.Args()) == 0 && len(args) >= 1 && args[0] == "--" {
 		err := os.Remove(ACTIVE_HOST_FILE)
 		if err == nil {
 			fmt.Println("Unset the active host.")
+		}
+		return err
+	}
+
+	if len(cmd.Args()) == 0 {
+		name, err := GetActiveHostName()
+		if err == nil {
+			fmt.Println(name)
 		}
 		return err
 	}
@@ -63,15 +75,24 @@ func DoActive(cli interface{}, args ...string) error {
 		// save active config
 		fmt.Fprintf(f, "---\n")
 		fmt.Fprintf(f, "name: %s\n", host.Name)
+		ip, _ := host.Driver.GetIP()
 		if *master {
-			ip, _ := host.Driver.GetIP()
 			fmt.Fprintf(f, "DOCKER_HOST: \"tcp://%s:3376\"\n", ip)
 		} else {
 			url, _ := host.GetURL()
-			fmt.Fprintf(f, "DOCKER_HOST: \"%s\"\n", url)
+			if *insecure {
+				fmt.Fprintf(f, "DOCKER_HOST: \"tcp://%s:2375\"\n", ip)
+			} else {
+				fmt.Fprintf(f, "DOCKER_HOST: \"%s\"\n", url)
+			}
 		}
-		fmt.Fprintf(f, "DOCKER_CERT_PATH: %s\n", host.HostOptions.AuthOptions.StorePath)
-		fmt.Fprintf(f, "DOCKER_TLS_VERIFY: 1\n")
+
+		if *insecure == false {
+			fmt.Fprintf(f, "DOCKER_CERT_PATH: %s\n", host.HostOptions.AuthOptions.StorePath)
+			fmt.Fprintf(f, "DOCKER_TLS_VERIFY: 1\n")
+		} else {
+			fmt.Fprintf(f, "DOCKER_TLS_VERIFY: 0\n")
+		}
 
 		fmt.Println(cmd.Args()[0])
 	} else {
