@@ -69,7 +69,7 @@ elif [ "$(expr substr $(uname -s) 1 9)" == "CYGWIN_NT" ]; then
 fi
 
 if [ "$1" == "--cache" ]; then
-	go install github.com/chanwit/gattai/gattai
+	go install -tags experimental github.com/chanwit/gattai/gattai
 	exit 0
 fi
 
@@ -83,14 +83,14 @@ rm -Rf $VENDOR/pkg
 update_and_patch ../../docker/docker     001.patch
 update_and_patch ../../docker/libcompose 002.patch
 
-go install github.com/chanwit/gattai/gattai
+go install -tags experimental github.com/chanwit/gattai/gattai
 if [[ $? -ne 0 ]]; then
 	echo  "Build failed"
 	exit 1
 fi
 
-gox -osarch="windows/amd64" github.com/chanwit/gattai/gattai
-gox -osarch="darwin/amd64"  github.com/chanwit/gattai/gattai
-gox -osarch="linux/amd64"   github.com/chanwit/gattai/gattai
-gox -osarch="linux/arm"     github.com/chanwit/gattai/gattai
+gox -osarch="windows/amd64" -tags experimental github.com/chanwit/gattai/gattai
+gox -osarch="darwin/amd64"  -tags experimental github.com/chanwit/gattai/gattai
+gox -osarch="linux/amd64"   -tags experimental github.com/chanwit/gattai/gattai
+gox -osarch="linux/arm"     -tags experimental github.com/chanwit/gattai/gattai
 echo "Built successsfully"
