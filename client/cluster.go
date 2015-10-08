@@ -1,6 +1,7 @@
 package client
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -54,6 +55,7 @@ func swarmManage(h *host.Host, image string, token string) error {
 		"--tlskey=" + h.HostOptions.AuthOptions.ClientKeyPath,
 		"--tlsverify=true",
 		"run", "-d", "--restart=always",
+		"--net=bridge",
 		"--name", "swarm-manager",
 		"-p", "3376:3376",
 		"-v", dockerDir + ":" + dockerDir,
@@ -64,10 +66,6 @@ func swarmManage(h *host.Host, image string, token string) error {
 		"--tlskey=" + authOptions.ServerKeyRemotePath,
 		"-H", "0.0.0.0:3376",
 		"token://" + token}...)
-
-	// cmd.Stdin = os.Stdin
-	// cmd.Stdout = os.Stdout
-	// cmd.Stderr = os.Stderr
 
 	err = cmd.Run()
 	if err == nil {
@@ -110,26 +108,25 @@ func swarmJoin(name string, image string, token string) error {
 		"--tlskey=" + h.HostOptions.AuthOptions.ClientKeyPath,
 		"--tlsverify=true",
 		"run", "-d", "--restart=always",
+		"--net=bridge",
 		"--name", "swarm-agent",
 		image, "join",
 		"--advertise", ip + ":2376",
 		"token://" + token}...)
 
-	// cmd.Stdin = os.Stdin
-	// cmd.Stdout = os.Stdout
-	// cmd.Stderr = os.Stderr
-
-	err = cmd.Run()
+	b, err := cmd.CombinedOutput()
 	if err == nil {
 		fmt.Printf("Machine '%s' joined cluster...\n", name)
+	} else {
+		fmt.Println(string(b))
 	}
 
 	return err
 }
 
 func DoCluster(cli interface{}, args ...string) error {
-	cmd := Cli.Subcmd("cluster", []string{"machines"},
-		"Set the machine specified as the active Docker host (-- to unset)", false)
+	cmd := Cli.Subcmd("cluster", []string{"MACHINES"},
+		"Form a cluster with a set of specified machines", false)
 
 	master := cmd.String([]string{"m", "-master"}, "", "Configure the cluster masters")
 	image := cmd.String([]string{"i", "-image"}, "swarm", "Specify Docker Swarm image")
@@ -137,13 +134,13 @@ func DoCluster(cli interface{}, args ...string) error {
 
 	cmd.ParseFlags(args, true)
 
-	if *master == "" {
-		return fmt.Errorf("Master machine is required.")
+	if *master == "" && len(cmd.Args()) == 0 {
+		return errors.New("Please specify a set of machines or the cluster master.")
 	}
 
 	// do provision if required
 	if *skipProvision == false {
-		err := DoProvision(cli, append([]string{*master}, cmd.Args()...)...)
+		err := DoProvision(cli, append([]string{"-q", *master}, cmd.Args()...)...)
 		if err != nil {
 			return err
 		}
