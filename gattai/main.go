@@ -1,6 +1,9 @@
 package main
 
 import (
+	"fmt"
+	"strconv"
+
 	"github.com/docker/docker/autogen/dockerversion"
 	_ "github.com/docker/machine/drivers/amazonec2"
 	_ "github.com/docker/machine/drivers/azure"
@@ -17,10 +20,11 @@ import (
 	_ "github.com/docker/machine/drivers/vmwarefusion"
 	_ "github.com/docker/machine/drivers/vmwarevcloudair"
 	_ "github.com/docker/machine/drivers/vmwarevsphere"
-	"github.com/docker/machine/libmachine/ssh"
 
 	_ "github.com/docker/libcompose"
 	_ "github.com/docker/machine/libmachine"
+	machinelog "github.com/docker/machine/libmachine/log"
+	"github.com/docker/machine/libmachine/ssh"
 
 	"io/ioutil"
 	"os"
@@ -45,7 +49,7 @@ var (
 		{"", backTabs + "Provision:"},
 		{"active", "Set a machine as the active Docker engine"},
 		{"ls", "List machines"},
-		{"provision", "Provision a set of machines"},
+		{"provision", "Provision a set of machines (alias: p)"},
 		{"rmm", "Remove machines"},
 		// {"service", "Manage the Docker service on machines"},
 		// {"ssh", "Run an SSH command on a set of machines"},
@@ -105,7 +109,30 @@ func (s *SimpleFormatter) Format(entry *log.Entry) ([]byte, error) {
 	return []byte(entry.Message + "\n"), nil
 }
 
+func setDebugOutputLevel() {
+	// TODO: I'm not really a fan of this method and really would rather
+	// use -v / --verbose TBQH
+	for _, f := range os.Args {
+		if f == "-D" || f == "--debug" || f == "-debug" {
+			machinelog.IsDebug = true
+		}
+	}
+
+	debugEnv := os.Getenv("MACHINE_DEBUG")
+	if debugEnv != "" {
+		showDebug, err := strconv.ParseBool(debugEnv)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error parsing boolean value from MACHINE_DEBUG: %s\n", err)
+			os.Exit(1)
+		}
+		machinelog.IsDebug = showDebug
+	}
+}
+
 func main() {
+
+	setDebugOutputLevel()
+
 	ssh.SetDefaultClient(ssh.Native)
 	log.SetFormatter(&SimpleFormatter{})
 	dockerversion.VERSION = "0.1"
