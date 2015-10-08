@@ -15,11 +15,14 @@ type Provision struct {
 }
 
 type Machine struct {
-	From      string
-	Driver    string
-	Instances int
-	Options   Options
-	Commands  []Command
+	From           string
+	Driver         string
+	Instances      int
+	Options        Options
+	Commands       []Command
+	Network        string   // default is "" == none
+	NetworkKvstore string   `yaml:"cluster-store"`
+	PostProvision  []string `yaml:"post-provision"`
 }
 
 type Command map[string]string
