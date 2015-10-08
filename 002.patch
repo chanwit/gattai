@@ -1,3 +1,17 @@
+diff --git a/docker/builder.go b/docker/builder.go
+index a6521e1..395d416 100644
+--- a/docker/builder.go
++++ b/docker/builder.go
+@@ -134,7 +134,8 @@ func CreateTar(p *project.Project, name string) (io.ReadCloser, error) {
+ 	}
+ 	var includes = []string{"."}
+ 
+-	excludes, err := utils.ReadDockerIgnore(path.Join(root, ".dockerignore"))
++	dockerignore, err := os.Open(path.Join(root, ".dockerignore"))
++	excludes, err := utils.ReadDockerIgnore(dockerignore)
+ 	if err != nil {
+ 		return nil, err
+ 	}
 diff --git a/docker/container.go b/docker/container.go
 index ed7fb08..7af2ad1 100644
 --- a/docker/container.go
@@ -9,23 +23,23 @@ index ed7fb08..7af2ad1 100644
 -		image = utils.ImageReference(taglessRemote, tags.DEFAULTTAG)
 +		image = utils.ImageReference(taglessRemote, tags.DefaultTag)
  	}
-
+ 
  	repoInfo, err := registry.ParseRepositoryInfo(taglessRemote)
 diff --git a/docker/convert.go b/docker/convert.go
-index b5fb765..f174681 100644
+index b5fb765..7c69006 100644
 --- a/docker/convert.go
 +++ b/docker/convert.go
 @@ -5,6 +5,7 @@ import (
-
+ 
  	"github.com/Sirupsen/logrus"
  	"github.com/docker/docker/pkg/nat"
 +	"github.com/docker/docker/pkg/stringutils"
  	"github.com/docker/docker/runconfig"
  	"github.com/docker/libcompose/project"
  	"github.com/docker/libcompose/utils"
-@@ -84,27 +85,27 @@ func Convert(c *project.ServiceConfig) (*runconfig.Config, *runconfig.HostConfig
+@@ -84,25 +85,25 @@ func Convert(c *project.ServiceConfig) (*runconfig.Config, *runconfig.HostConfig
  	}
-
+ 
  	config := &runconfig.Config{
 -		Entrypoint:   runconfig.NewEntrypoint(c.Entrypoint.Slice()...),
 +		Entrypoint:   stringutils.NewStrSlice(c.Entrypoint.Slice()...),
@@ -50,12 +64,8 @@ index b5fb765..f174681 100644
  		VolumesFrom: c.VolumesFrom,
 -		CapAdd:      runconfig.NewCapList(c.CapAdd),
 -		CapDrop:     runconfig.NewCapList(c.CapDrop),
--		CPUShares:   c.CPUShares,
--		CpusetCpus:  c.CPUSet,
 +		CapAdd:      stringutils.NewStrSlice(c.CapAdd...),
 +		CapDrop:     stringutils.NewStrSlice(c.CapDrop...),
-+		CPUShares:   c.CPUShares,
-+		CpusetCpus:  c.CPUSet,
+ 		CPUShares:   c.CPUShares,
+ 		CpusetCpus:  c.CPUSet,
  		ExtraHosts:  c.ExtraHosts,
- 		Privileged:  c.Privileged,
- 		Binds:       Filter(c.Volumes, isBind),
