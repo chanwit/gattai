@@ -51,6 +51,10 @@ func (cli *DockerCli) CmdCluster(args ...string) error {
 	return client.DoCluster(cli, args...)
 }
 
+func (cli *DockerCli) CmdDiscovery(args ...string) error {
+	return client.DoDiscovery(cli, args...)
+}
+
 func (cli *DockerCli) CmdHtop(args ...string) error {
 	return client.DoHtop(cli, args...)
 }
