@@ -1,6 +1,7 @@
 package client
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"os"
@@ -78,7 +79,7 @@ func DoToken(cli interface{}, args ...string) error {
 	cmd.ParseFlags(args, true)
 
 	if len(cmd.Args()) != 0 {
-		return fmt.Errorf("Invalid argument number")
+		return errors.New("Invalid argument number")
 	}
 
 	if *delete {
@@ -97,13 +98,15 @@ func DoToken(cli interface{}, args ...string) error {
 	}
 
 	// Show the current token
-	tk, err := readToken()
-	if err == nil {
-		fmt.Printf("Token already existed: %s\n", tk)
+	if tk, err := readToken(); err == nil {
+		fmt.Printf("Token already exists: %s\n", tk)
 		return nil
 	}
 
-	tk, err = generateToken()
-	fmt.Println(tk)
-	return nil
+	if tk, err := generateToken(); err == nil {
+		fmt.Println(tk)
+		return nil
+	}
+
+	return errors.New("Error generating token")
 }
