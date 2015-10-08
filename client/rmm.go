@@ -11,7 +11,7 @@ import (
 
 func DoRmm(cli interface{}, args ...string) error {
 
-	cmd := Cli.Subcmd("rmm", []string{"machines"}, "Remove machines", false)
+	cmd := Cli.Subcmd("rmm", []string{"MACHINES"}, "Remove machines", false)
 
 	force := cmd.Bool([]string{"f", "-force"}, false, "Force removing machines")
 
