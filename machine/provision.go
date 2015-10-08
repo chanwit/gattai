@@ -81,7 +81,9 @@ func (p *Provision) verifyDrivers() error {
 				details.Options = make(map[string]interface{})
 			}
 			for k, v := range from.Options {
-				details.Options[k] = v
+				if _, exist := details.Options[k]; !exist {
+					details.Options[k] = v
+				}
 			}
 			copy(details.Commands, from.Commands)
 			p.Machines[group] = details
