@@ -26,6 +26,45 @@ import (
 	// "github.com/pkg/sftp"
 )
 
+func removeAllContainers(h *host.Host) error {
+	url, err := h.GetURL()
+	if err != nil {
+		return err
+	}
+
+	psArgs := append([]string{
+		"-H", url,
+		"--tlscacert=" + h.HostOptions.AuthOptions.CaCertPath,
+		"--tlscert=" + h.HostOptions.AuthOptions.ClientCertPath,
+		"--tlskey=" + h.HostOptions.AuthOptions.ClientKeyPath,
+		"--tlsverify=true"},
+		"ps", "-aq")
+	ps := exec.Command(os.Args[0], psArgs...)
+	bytes, err := ps.Output()
+	if err != nil {
+		return err
+	}
+	containers := strings.Split(strings.TrimSpace(string(bytes)), "\n")
+
+	args := append([]string{
+		"-H", url,
+		"--tlscacert=" + h.HostOptions.AuthOptions.CaCertPath,
+		"--tlscert=" + h.HostOptions.AuthOptions.ClientCertPath,
+		"--tlskey=" + h.HostOptions.AuthOptions.ClientKeyPath,
+		"--tlsverify=true",
+		"rm", "-f"},
+		containers...)
+
+	rm := exec.Command(os.Args[0], args...)
+	bytes, err = rm.CombinedOutput()
+	if err != nil {
+		fmt.Print(string(bytes))
+		return err
+	}
+
+	return nil
+}
+
 func configureNetwork(kvstore, firstMachine *host.Host, opt machine.Options) (machine.Options, error) {
 	//   engine-label:
 	//     - "com.docker.network.driver.overlay.bind_interface=eth0"
@@ -45,7 +84,7 @@ func configureNetwork(kvstore, firstMachine *host.Host, opt machine.Options) (ma
 	}
 
 	opts := opt.StringSlice("engine-opt")
-	opts = append(opts, "default-network overlay:multihost")
+	// opts = append(opts, "default-network overlay:multihost")
 	ip, err := kvstore.Driver.GetIP()
 	if err != nil {
 		return nil, err
@@ -261,6 +300,8 @@ func DoProvision(cli interface{}, args ...string) error {
 			h.Start()
 			spacing = false
 		}
+
+		_ = removeAllContainers(h)
 		// TODO delete all containers during re-provision?
 
 		if details.PostProvision != nil && len(details.PostProvision) > 0 {
