@@ -27,45 +27,11 @@ import (
 )
 
 func removeAllContainers(h *host.Host) error {
-	url, err := h.GetURL()
-	if err != nil {
-		return err
-	}
-
-	psArgs := append([]string{
-		"-H", url,
-		"--tlscacert=" + h.HostOptions.AuthOptions.CaCertPath,
-		"--tlscert=" + h.HostOptions.AuthOptions.ClientCertPath,
-		"--tlskey=" + h.HostOptions.AuthOptions.ClientKeyPath,
-		"--tlsverify=true"},
-		"ps", "-aq")
-	ps := exec.Command(os.Args[0], psArgs...)
-	bytes, err := ps.Output()
-	if err != nil {
-		return err
-	}
-	containers := strings.Split(strings.TrimSpace(string(bytes)), "\n")
-
-	args := append([]string{
-		"-H", url,
-		"--tlscacert=" + h.HostOptions.AuthOptions.CaCertPath,
-		"--tlscert=" + h.HostOptions.AuthOptions.ClientCertPath,
-		"--tlskey=" + h.HostOptions.AuthOptions.ClientKeyPath,
-		"--tlsverify=true",
-		"rm", "-f"},
-		containers...)
-
-	rm := exec.Command(os.Args[0], args...)
-	bytes, err = rm.CombinedOutput()
-	if err != nil {
-		fmt.Print(string(bytes))
-		return err
-	}
-
-	return nil
+	r := machine.Runner(*h)
+	return r.RemoveAllContainers()
 }
 
-func configureNetwork(kvstore, firstMachine *host.Host, opt machine.Options) (machine.Options, error) {
+func configureClusterStore(kvstore, firstMachine *host.Host, opt machine.Options) (machine.Options, error) {
 	//   engine-label:
 	//     - "com.docker.network.driver.overlay.bind_interface=eth0"
 	//     - "com.docker.network.driver.overlay.neighbor_ip=${NODE_1_IP}"
@@ -84,12 +50,18 @@ func configureNetwork(kvstore, firstMachine *host.Host, opt machine.Options) (ma
 	}
 
 	opts := opt.StringSlice("engine-opt")
-	// opts = append(opts, "default-network overlay:multihost")
-	ip, err := kvstore.Driver.GetIP()
+
+	r := machine.Runner(*kvstore)
+	storeUrl, err := r.FindContainerByImage(map[string]int{
+		"consul":    8500,
+		"zookeeper": 2181,
+		// TODO etcd
+	})
 	if err != nil {
 		return nil, err
 	}
-	opts = append(opts, "cluster-store consul://"+ip+":8500")
+
+	opts = append(opts, "cluster-store "+storeUrl)
 
 	opt["engine-label"] = labels
 	opt["engine-opt"] = opts
@@ -208,15 +180,13 @@ func DoProvision(cli interface{}, args ...string) error {
 					c[k] = v
 				}
 
-				if details.Network != "" && details.Network != "none" {
-					kvstoreName := details.NetworkKvstore
-					if kvstoreName == "" {
-						return errors.New("No kv-store specified")
-					}
+				kvstoreName := details.NetworkKvstore
+				if kvstoreName != "" {
 					kvstore, err := store.Load(kvstoreName)
 					if err != nil {
 						return err
 					}
+
 					firstMachineName := fmt.Sprintf("%s-%d", group, 1)
 					var firstMachine *host.Host
 					if firstMachineName != name {
@@ -226,7 +196,7 @@ func DoProvision(cli interface{}, args ...string) error {
 						}
 					}
 
-					c, err = configureNetwork(kvstore, firstMachine, c)
+					c, err = configureClusterStore(kvstore, firstMachine, c)
 					if err != nil {
 						return err
 					}
@@ -297,6 +267,7 @@ func DoProvision(cli interface{}, args ...string) error {
 			}
 		} else {
 			fmt.Printf("Machine '%s' exists, starting...\n", name)
+			// TODO reprovision
 			h.Start()
 			spacing = false
 		}
@@ -328,13 +299,6 @@ func DoProvision(cli interface{}, args ...string) error {
 	if !spacing {
 		fmt.Println()
 	}
-
-	// TODO
-	// post-provision state checks (commands:)
-	// for _, machineName := range machineList {
-	//	host, err := provider.Get(machineName)
-	//	// host.
-	// }
 
 	if *quiet == false {
 		w := tabwriter.NewWriter(os.Stdout, 5, 1, 3, ' ', 0)
