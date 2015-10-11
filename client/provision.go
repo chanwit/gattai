@@ -15,12 +15,16 @@ import (
 	Cli "github.com/docker/docker/cli"
 	"github.com/docker/machine/commands/mcndirs"
 	"github.com/docker/machine/drivers/driverfactory"
-	"github.com/docker/machine/libmachine"
 	"github.com/docker/machine/libmachine/auth"
 	"github.com/docker/machine/libmachine/cert"
+	"github.com/docker/machine/libmachine/drivers"
 	"github.com/docker/machine/libmachine/engine"
 	"github.com/docker/machine/libmachine/host"
 	"github.com/docker/machine/libmachine/mcnerror"
+	"github.com/docker/machine/libmachine/mcnutils"
+	"github.com/docker/machine/libmachine/persist"
+	"github.com/docker/machine/libmachine/provision"
+	"github.com/docker/machine/libmachine/state"
 	"github.com/docker/machine/libmachine/swarm"
 	"github.com/mattn/go-shellwords"
 	// "github.com/pkg/sftp"
@@ -31,24 +35,7 @@ func removeAllContainers(h *host.Host) error {
 	return r.RemoveAllContainers()
 }
 
-func configureClusterStore(kvstore, firstMachine *host.Host, opt machine.Options) (machine.Options, error) {
-	//   engine-label:
-	//     - "com.docker.network.driver.overlay.bind_interface=eth0"
-	//     - "com.docker.network.driver.overlay.neighbor_ip=${NODE_1_IP}"
-	//   engine-opt:
-	//     - "default-network overlay:multihost"
-	//     - "kv-store consul:${KVSTORE_IP}:8500"
-
-	labels := opt.StringSlice("engine-label")
-	labels = append(labels, "com.docker.network.driver.overlay.bind_interface=eth0")
-	if firstMachine != nil {
-		ip, err := firstMachine.Driver.GetIP()
-		if err != nil {
-			return nil, err
-		}
-		labels = append(labels, "com.docker.network.driver.overlay.neighbor_ip="+ip)
-	}
-
+func configureClusterStore(node, kvstore *host.Host, opt machine.Options) (machine.Options, error) {
 	opts := opt.StringSlice("engine-opt")
 
 	r := machine.Runner(*kvstore)
@@ -62,8 +49,12 @@ func configureClusterStore(kvstore, firstMachine *host.Host, opt machine.Options
 	}
 
 	opts = append(opts, "cluster-store "+storeUrl)
+	ip, err := node.Driver.GetIP()
+	if err != nil {
+		return nil, err
+	}
 
-	opt["engine-label"] = labels
+	opts = append(opts, "cluster-advertise "+ip+":2376")
 	opt["engine-opt"] = opts
 
 	return opt, nil
@@ -96,6 +87,64 @@ func engineExecute(h *host.Host, line string) error {
 		fmt.Print(string(b))
 		return err
 	}
+
+	return nil
+}
+
+// Create is the wrapper method which covers all of the boilerplate around
+// actually creating, provisioning, and persisting an instance in the store.
+func create(store persist.Store, h *host.Host, callback func(*host.Host)) error {
+	if err := cert.BootstrapCertificates(h.HostOptions.AuthOptions); err != nil {
+		return fmt.Errorf("Error generating certificates: %s", err)
+	}
+
+	log.Info("Running pre-create checks...")
+
+	if err := h.Driver.PreCreateCheck(); err != nil {
+		return fmt.Errorf("Error with pre-create check: %s", err)
+	}
+
+	if err := store.Save(h); err != nil {
+		return fmt.Errorf("Error saving host to store before attempting creation: %s", err)
+	}
+
+	log.Info("Creating machine...")
+
+	if err := h.Driver.Create(); err != nil {
+		return fmt.Errorf("Error in driver during machine creation: %s", err)
+	}
+
+	if err := store.Save(h); err != nil {
+		return fmt.Errorf("Error saving host to store after attempting creation: %s", err)
+	}
+
+	// TODO: Not really a fan of just checking "none" here.
+	if h.Driver.DriverName() != "none" {
+		log.Info("Waiting for machine to be running, this may take a few minutes...")
+		if err := mcnutils.WaitFor(drivers.MachineInState(h.Driver, state.Running)); err != nil {
+			return fmt.Errorf("Error waiting for machine to be running: %s", err)
+		}
+
+		log.Info("Machine is running, waiting for SSH to be available...")
+		if err := drivers.WaitForSSH(h.Driver); err != nil {
+			return fmt.Errorf("Error waiting for SSH: %s", err)
+		}
+
+		log.Info("Detecting operating system of created instance...")
+		provisioner, err := provision.DetectProvisioner(h.Driver)
+		if err != nil {
+			return fmt.Errorf("Error detecting OS: %s", err)
+		}
+
+		callback(h)
+
+		log.Info("Provisioning created instance...")
+		if err := provisioner.Provision(*h.HostOptions.SwarmOptions, *h.HostOptions.AuthOptions, *h.HostOptions.EngineOptions); err != nil {
+			return fmt.Errorf("Error running provisioning: %s", err)
+		}
+	}
+
+	log.Debug("Reticulating splines...")
 
 	return nil
 }
@@ -175,34 +224,25 @@ func DoProvision(cli interface{}, args ...string) error {
 				fmt.Printf("Machine '%s' not found, creating...\n", name)
 				spacing = true
 
+				// spew.Dump(hostOptions)
+
+				driver, err := driverfactory.NewDriver(details.Driver, name, *machineStoragePath)
+				if err != nil {
+					log.Fatalf("Error trying to get driver: %s", err)
+				}
+
+				// TODO populate Env Vars from all hosts
+				// to use with .SetConfigFromFlags
+
+				h, err = store.NewHost(driver)
+				if err != nil {
+					log.Fatalf("Error getting new host: %s", err)
+				}
+
 				c := machine.Options(make(map[string]interface{}))
 				for k, v := range details.Options {
 					c[k] = v
 				}
-
-				kvstoreName := details.NetworkKvstore
-				if kvstoreName != "" {
-					kvstore, err := store.Load(kvstoreName)
-					if err != nil {
-						return err
-					}
-
-					firstMachineName := fmt.Sprintf("%s-%d", group, 1)
-					var firstMachine *host.Host
-					if firstMachineName != name {
-						firstMachine, err = store.Load(firstMachineName)
-						if err != nil {
-							return err
-						}
-					}
-
-					c, err = configureClusterStore(kvstore, firstMachine, c)
-					if err != nil {
-						return err
-					}
-				}
-
-				//spew.Dump(c)
 
 				hostOptions := &host.HostOptions{
 					AuthOptions: &auth.AuthOptions{
@@ -237,28 +277,32 @@ func DoProvision(cli interface{}, args ...string) error {
 					},
 				}
 
-				// spew.Dump(hostOptions)
-
-				driver, err := driverfactory.NewDriver(details.Driver, name, *machineStoragePath)
-				if err != nil {
-					log.Fatalf("Error trying to get driver: %s", err)
-				}
-
-				// TODO populate Env Vars from all hosts
-				// to use with .SetConfigFromFlags
-
-				h, err = store.NewHost(driver)
-				if err != nil {
-					log.Fatalf("Error getting new host: %s", err)
-				}
-
 				h.HostOptions = hostOptions
 
 				if err := h.Driver.SetConfigFromFlags(details.Options); err != nil {
 					log.Fatalf("Error setting machine configuration from flags provided: %s", err)
 				}
 
-				err = libmachine.Create(store, h)
+				err = create(store, h, func(hh *host.Host) {
+					c := machine.Options(make(map[string]interface{}))
+					for k, v := range details.Options {
+						c[k] = v
+					}
+
+					kvstoreName := details.NetworkKvstore
+					if kvstoreName != "" {
+						kvstore, err := store.Load(kvstoreName)
+						if err != nil {
+							panic(err)
+						}
+
+						c, err = configureClusterStore(h, kvstore, c)
+						if err != nil {
+							panic(err)
+						}
+						hh.HostOptions.EngineOptions.ArbitraryFlags = c.StringSlice("engine-opt")
+					}
+				})
 				if err != nil {
 					log.Errorf("Error creating machine: %s", err)
 					log.Fatal("You will want to check the provider to make sure the machine and associated resources were properly removed.")
