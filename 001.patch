@@ -1,18 +1,18 @@
 diff --git a/api/client/volume.go b/api/client/volume.go
-index 740f3d7..5a6640e 100644
+index 60535d7..529ce25 100644
 --- a/api/client/volume.go
 +++ b/api/client/volume.go
 @@ -32,7 +32,7 @@ func (cli *DockerCli) CmdVolume(args ...string) error {
  		description += fmt.Sprintf("  %-25.25s%s\n", cmd[0], cmd[1])
  	}
-
+ 
 -	description += "\nRun 'docker volume COMMAND --help' for more information on a command"
 +	description += "\nRun 'gattai volume COMMAND --help' for more information on a command"
- 	cmd := Cli.Subcmd("volume", []string{"[COMMAND]"}, description, true)
+ 	cmd := Cli.Subcmd("volume", []string{"[COMMAND]"}, description, false)
+ 
  	cmd.Require(flag.Exact, 0)
- 	cmd.ParseFlags(args, true)
 diff --git a/cli/cli.go b/cli/cli.go
-index 8e559fc..38e7d12 100644
+index 8e559fc..db3e0f1 100644
 --- a/cli/cli.go
 +++ b/cli/cli.go
 @@ -99,7 +99,7 @@ func (cli *Cli) noSuchCommand(command string) {
@@ -23,13 +23,26 @@ index 8e559fc..38e7d12 100644
 +	fmt.Fprintf(cli.Stderr, "gattai: '%s' is not a gattai command.\nSee 'gattai --help'.\n", command)
  	os.Exit(1)
  }
-
+ 
 @@ -180,7 +180,7 @@ func Subcmd(name string, synopses []string, description string, exitOnError bool
  				synopsis = " " + synopsis
  			}
-
+ 
 -			fmt.Fprintf(flags.Out(), "\n%sdocker %s%s%s", lead, name, options, synopsis)
 +			fmt.Fprintf(flags.Out(), "\n%sgattai %s%s%s", lead, name, options, synopsis)
  		}
-
+ 
  		fmt.Fprintf(flags.Out(), "\n\n%s\n", description)
+diff --git a/pkg/mflag/flag.go b/pkg/mflag/flag.go
+index afab4c9..0d3483a 100644
+--- a/pkg/mflag/flag.go
++++ b/pkg/mflag/flag.go
+@@ -1147,7 +1147,7 @@ func (fs *FlagSet) ReportError(str string, withHelp bool) {
+ 			str += ".\nSee '" + os.Args[0] + " " + fs.Name() + " --help'"
+ 		}
+ 	}
+-	fmt.Fprintf(fs.Out(), "docker: %s.\n", str)
++	fmt.Fprintf(fs.Out(), "gattai: %s.\n", str)
+ }
+ 
+ // Parsed reports whether fs.Parse has been called.
