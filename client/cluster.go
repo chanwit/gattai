@@ -130,7 +130,7 @@ func DoCluster(cli interface{}, args ...string) error {
 
 	master := cmd.String([]string{"m", "-master"}, "", "Configure the cluster masters")
 	image := cmd.String([]string{"i", "-image"}, "swarm", "Specify Docker Swarm image")
-	skipProvision := cmd.Bool([]string{"P", "-skip-provision"}, false, "Skip automatic provision before forming the cluster")
+	provision := cmd.Bool([]string{"p", "-provision"}, false, "Automatic provision before forming the cluster")
 
 	cmd.ParseFlags(args, true)
 
@@ -139,7 +139,7 @@ func DoCluster(cli interface{}, args ...string) error {
 	}
 
 	// do provision if required
-	if *skipProvision == false {
+	if *provision == true {
 		err := DoProvision(cli, append([]string{"-q", *master}, cmd.Args()...)...)
 		if err != nil {
 			return err
