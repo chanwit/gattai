@@ -37,12 +37,15 @@ func readToken() (string, error) {
 	envs := make(map[string]string)
 	bytes, err := utils.ReadFile(".gattai/.token")
 	if err != nil {
-		return "", fmt.Errorf("There is no token set.")
+		return "", fmt.Errorf("There is no token or cluster store set.")
 	}
 
 	err = yaml.Unmarshal(bytes, &envs)
 	if err == nil {
-		return envs["CLUSTER_TOKEN"], nil
+		if value, exist := envs["CLUSTER_TOKEN"]; exist {
+			return value, nil
+		}
+		return envs["CLUSTER_STORE"], nil
 	}
 
 	return "", err
