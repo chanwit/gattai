@@ -65,9 +65,13 @@ func DoSsh(cli interface{}, args ...string) error {
 			log.Fatalf("Error: Cannot run SSH command: Host %q is not running", host.Name)
 		}
 
-		err = host.CreateSSHShell()
+		client, err := host.CreateSSHClient()
 		if err != nil {
-			return err
+			log.Fatal(err)
+		}
+
+		if err := client.Shell(cmd.Args()[1:]...); err != nil {
+			log.Fatal(err)
 		}
 	} else {
 
@@ -77,7 +81,12 @@ func DoSsh(cli interface{}, args ...string) error {
 		}
 
 		// TODO should limit string channel
-		outputs := make(chan string, len(machineList))
+		limit := len(machineList)
+		if limit > 4 {
+			limit = 4
+		}
+
+		outputs := make(chan string, limit)
 		for _, name := range machineList {
 			go func(name string) {
 				host, err := store.Load(name)
