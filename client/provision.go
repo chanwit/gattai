@@ -35,7 +35,25 @@ func removeAllContainers(h *host.Host) error {
 	return r.RemoveAllContainers()
 }
 
-func configureClusterStore(node, kvstore *host.Host, opt machine.Options) (machine.Options, error) {
+func saveDiscoveryUrl(url string) error {
+	oldurl, _ := readToken()
+	if oldurl == url {
+		return nil
+	}
+
+	f, err := os.Create(".gattai/.token")
+	defer f.Close()
+	if err != nil {
+		return err
+	}
+
+	fmt.Fprintf(f, "---\n")
+	fmt.Fprintf(f, "CLUSTER_STORE: %s\n", url)
+
+	return nil
+}
+
+func configureClusterStore(node, kvstore *host.Host, opt machine.Options) (machine.Options, string, error) {
 	opts := opt.StringSlice("engine-opt")
 
 	r := machine.Runner(*kvstore)
@@ -45,19 +63,19 @@ func configureClusterStore(node, kvstore *host.Host, opt machine.Options) (machi
 		// TODO etcd
 	})
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 
 	opts = append(opts, "cluster-store "+storeUrl)
 	ip, err := node.Driver.GetIP()
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 
 	opts = append(opts, "cluster-advertise "+ip+":2376")
 	opt["engine-opt"] = opts
 
-	return opt, nil
+	return opt, storeUrl, nil
 }
 
 func engineExecute(h *host.Host, line string) error {
@@ -296,11 +314,13 @@ func DoProvision(cli interface{}, args ...string) error {
 							panic(err)
 						}
 
-						c, err = configureClusterStore(h, kvstore, c)
+						c, url, err := configureClusterStore(h, kvstore, c)
 						if err != nil {
 							panic(err)
+						} else {
+							hh.HostOptions.EngineOptions.ArbitraryFlags = c.StringSlice("engine-opt")
+							saveDiscoveryUrl(url)
 						}
-						hh.HostOptions.EngineOptions.ArbitraryFlags = c.StringSlice("engine-opt")
 					}
 				})
 				if err != nil {
