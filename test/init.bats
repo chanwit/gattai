@@ -1,16 +1,16 @@
 #!/usr/bin/env bats
 
+load helpers
+
 function setup() {
-  mkdir $BATS_TEST_DIRNAME/temp
+  _setup()
 }
 
 function teardown() {
-  rm -rf $BATS_TEST_DIRNAME/temp
-  cd $BATS_TEST_DIRNAME
+  _teardown()
 }
 
 @test "gattai init" {
-  cd $BATS_TEST_DIRNAME/temp
   run gattai init
   [ "$status" -eq 0 ]
   [ "${lines[0]}" = "Gattai mission repository is initialized." ]
@@ -26,7 +26,6 @@ function teardown() {
 }
 
 @test "gattai re-init" {
-  cd $BATS_TEST_DIRNAME/temp
   run gattai init
   [ "$status" -eq 0 ]
 
@@ -36,7 +35,6 @@ function teardown() {
 }
 
 @test "gattai re-init with existing provision file" {
-  cd $BATS_TEST_DIRNAME/temp
   run gattai init
   [ "$status" -eq 0 ]
 
