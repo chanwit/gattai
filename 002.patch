@@ -1,8 +1,8 @@
 diff --git a/docker/builder.go b/docker/builder.go
-index a6521e1..395d416 100644
+index 7bd8d13..f4b0e40 100644
 --- a/docker/builder.go
 +++ b/docker/builder.go
-@@ -134,7 +134,8 @@ func CreateTar(p *project.Project, name string) (io.ReadCloser, error) {
+@@ -136,7 +136,8 @@ func CreateTar(p *project.Project, name string) (io.ReadCloser, error) {
  	}
  	var includes = []string{"."}
  
@@ -12,19 +12,6 @@ index a6521e1..395d416 100644
  	if err != nil {
  		return nil, err
  	}
-diff --git a/docker/container.go b/docker/container.go
-index ed7fb08..7af2ad1 100644
---- a/docker/container.go
-+++ b/docker/container.go
-@@ -406,7 +406,7 @@ func (c *Container) Log() error {
- func (c *Container) pull(image string) error {
- 	taglessRemote, tag := parsers.ParseRepositoryTag(image)
- 	if tag == "" {
--		image = utils.ImageReference(taglessRemote, tags.DEFAULTTAG)
-+		image = utils.ImageReference(taglessRemote, tags.DefaultTag)
- 	}
- 
- 	repoInfo, err := registry.ParseRepositoryInfo(taglessRemote)
 diff --git a/docker/convert.go b/docker/convert.go
 index b5fb765..7c69006 100644
 --- a/docker/convert.go
