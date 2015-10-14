@@ -130,6 +130,7 @@ func (h *Runner) findContainerByImage(containers []dockerclient.Container, image
 				protocol = "zk"
 			}
 
+			// name := h.Name
 			// host port?
 			if len(c.Ports) == 0 {
 				return fmt.Sprintf("%s://%s:%d", protocol, ip, port), nil
