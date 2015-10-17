@@ -3,11 +3,11 @@
 load helpers
 
 function setup() {
-  _setup()
+  _setup
 }
 
 function teardown() {
-  _teardown()
+  _teardown
 }
 
 @test "gattai init" {

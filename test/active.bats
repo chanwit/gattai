@@ -22,7 +22,7 @@ function teardown() {
     _teardown
 }
 
-@test "active - set" {
+@test "gattai active - set" {
     run gattai active test-1
     [ "$status" -eq 0 ]
 
@@ -34,7 +34,7 @@ function teardown() {
     [ "${lines[2]}" = "DOCKER_HOST: \"tcp://1.2.3.4:2376\"" ]
 }
 
-@test "active - unset" {
+@test "gattai active - unset" {
     run gattai active test-1
     [ "$status" -eq 0 ]
 
@@ -45,7 +45,7 @@ function teardown() {
     [ "$status" -ne 0 ]
 }
 
-@test "active - get" {
+@test "gattai active - get" {
     run gattai active test-1
     [ "$status" -eq 0 ]
 
@@ -54,7 +54,7 @@ function teardown() {
     [ "${lines[0]}" = "test-1" ]
 }
 
-@test "active - switch" {
+@test "gattai active - switch" {
     run gattai active test-1
     [ "$status" -eq 0 ]
 
