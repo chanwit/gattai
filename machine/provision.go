@@ -5,8 +5,8 @@ import (
 	"strings"
 
 	log "github.com/Sirupsen/logrus"
+	"github.com/chanwit/gattai/machine/driverfactory"
 	"github.com/chanwit/gattai/utils"
-	"github.com/docker/machine/libmachine/drivers"
 	"gopkg.in/yaml.v2"
 )
 
@@ -91,7 +91,7 @@ func (p *Provision) verifyDrivers() error {
 
 		// verify driver
 		found := false
-		for _, driver := range drivers.GetDriverNames() {
+		for _, driver := range driverfactory.GetDriverNames() {
 			if driver == details.Driver {
 				found = true
 				break

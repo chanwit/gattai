@@ -11,10 +11,10 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/chanwit/gattai/machine"
+	"github.com/chanwit/gattai/machine/driverfactory"
 	"github.com/chanwit/gattai/utils"
 	Cli "github.com/docker/docker/cli"
 	"github.com/docker/machine/commands/mcndirs"
-	"github.com/docker/machine/drivers/driverfactory"
 	"github.com/docker/machine/libmachine/auth"
 	"github.com/docker/machine/libmachine/cert"
 	"github.com/docker/machine/libmachine/drivers"
