@@ -13,7 +13,7 @@ func DoRmm(cli interface{}, args ...string) error {
 
 	cmd := Cli.Subcmd("rmm", []string{"MACHINES"}, "Remove machines", false)
 
-	force := cmd.Bool([]string{"f", "-force"}, false, "Force removing machines")
+	// force := cmd.Bool([]string{"f", "-force"}, false, "Force removing machines")
 
 	cmd.ParseFlags(args, true)
 
@@ -27,7 +27,7 @@ func DoRmm(cli interface{}, args ...string) error {
 
 	for _, pattern := range cmd.Args() {
 		for _, host := range utils.Generate(pattern) {
-			if err := store.Remove(host, *force); err != nil {
+			if err := store.Remove(host); err != nil {
 				log.Errorf("Error removing machine %s: %s", host, err)
 				isError = true
 			} else {
