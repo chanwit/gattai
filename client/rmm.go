@@ -13,7 +13,7 @@ func DoRmm(cli interface{}, args ...string) error {
 
 	cmd := Cli.Subcmd("rmm", []string{"MACHINES"}, "Remove machines", false)
 
-	// force := cmd.Bool([]string{"f", "-force"}, false, "Force removing machines")
+	force := cmd.Bool([]string{"f", "-force"}, false, "Force removing machines")
 
 	cmd.ParseFlags(args, true)
 
@@ -26,18 +26,31 @@ func DoRmm(cli interface{}, args ...string) error {
 	store := machine.GetDefaultStore(utils.GetBaseDir())
 
 	for _, pattern := range cmd.Args() {
-		for _, host := range utils.Generate(pattern) {
-			if err := store.Remove(host); err != nil {
-				log.Errorf("Error removing machine %s: %s", host, err)
+		for _, hostName := range utils.Generate(pattern) {
+			h, err := loadHost(store, hostName, utils.GetBaseDir())
+			if err != nil {
 				isError = true
+				log.Errorf("Error removing machine %s: %s", hostName, err)
+			}
+
+			if err := h.Driver.Remove(); err != nil {
+				if !*force {
+					isError = true
+					log.Errorf("Provider error removing machine %q: %s", hostName, err)
+					continue
+				}
+			}
+			if err := store.Remove(hostName); err != nil {
+				isError = true
+				log.Errorf("Error removing machine %q from store: %s", hostName, err)
 			} else {
-				log.Infof("Successfully removed %s", host)
+				log.Infof("Successfully removed %s", hostName)
 			}
 		}
 	}
 
 	if isError {
-		return fmt.Errorf("There was an error removing a machine. To force remove it, pass the -f option. Warning: this might leave it running on the provider.")
+		return fmt.Errorf("There was an error removing a machine.")
 	}
 
 	return nil

@@ -1,6 +1,7 @@
 package client
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -14,7 +15,6 @@ import (
 	"github.com/chanwit/gattai/machine/driverfactory"
 	"github.com/chanwit/gattai/utils"
 	Cli "github.com/docker/docker/cli"
-	"github.com/docker/machine/commands/mcndirs"
 	"github.com/docker/machine/libmachine/auth"
 	"github.com/docker/machine/libmachine/cert"
 	"github.com/docker/machine/libmachine/drivers"
@@ -264,14 +264,14 @@ func DoProvision(cli interface{}, args ...string) error {
 
 				hostOptions := &host.HostOptions{
 					AuthOptions: &auth.AuthOptions{
-						CertDir:          mcndirs.GetMachineCertDir(),
+						CertDir:          utils.GetMachineCertDir(),
 						CaCertPath:       certInfo.CaCertPath,
 						CaPrivateKeyPath: certInfo.CaPrivateKeyPath,
 						ClientCertPath:   certInfo.ClientCertPath,
 						ClientKeyPath:    certInfo.ClientKeyPath,
-						ServerCertPath:   filepath.Join(mcndirs.GetMachineDir(), name, "server.pem"),
-						ServerKeyPath:    filepath.Join(mcndirs.GetMachineDir(), name, "server-key.pem"),
-						StorePath:        filepath.Join(mcndirs.GetMachineDir(), name),
+						ServerCertPath:   filepath.Join(utils.GetMachineDir(), name, "server.pem"),
+						ServerKeyPath:    filepath.Join(utils.GetMachineDir(), name, "server-key.pem"),
+						StorePath:        filepath.Join(utils.GetMachineDir(), name),
 					},
 					EngineOptions: &engine.EngineOptions{
 						ArbitraryFlags:   c.StringSlice("engine-opt"),
@@ -328,6 +328,18 @@ func DoProvision(cli interface{}, args ...string) error {
 					log.Fatal("You will want to check the provider to make sure the machine and associated resources were properly removed.")
 				}
 
+				// make it compatible with RpcDriver
+				driverData, err := json.Marshal(h.Driver)
+				if err != nil {
+					log.Fatal("Cannot marshal host driver")
+				}
+				h.RawDriver = driverData
+				err = store.Save(h)
+
+				if err != nil {
+					log.Fatalf("Error saving machine: %s", err)
+				}
+
 			}
 		} else {
 			fmt.Printf("Machine '%s' exists, starting...\n", name)
@@ -369,7 +381,7 @@ func DoProvision(cli interface{}, args ...string) error {
 		fmt.Fprintln(w, "NAME\tURL\tSTATE")
 
 		for _, machineName := range machineList {
-			h, err := store.Load(machineName)
+			h, err := loadHost(store, machineName, utils.GetBaseDir())
 			items := getHostListItems([]*host.Host{h})
 			if err == nil {
 				url, _ := h.GetURL()

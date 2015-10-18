@@ -1,6 +1,7 @@
 package client
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -11,18 +12,22 @@ import (
 	"time"
 
 	log "github.com/Sirupsen/logrus"
+
+	"github.com/chanwit/gattai/machine"
+	"github.com/chanwit/gattai/machine/driverfactory"
+	"github.com/chanwit/gattai/utils"
+
+	Cli "github.com/docker/docker/cli"
+
+	"github.com/docker/docker/opts"
+	"github.com/docker/docker/pkg/parsers/filters"
 	"github.com/docker/machine/libmachine/drivers"
 	"github.com/docker/machine/libmachine/host"
 	"github.com/docker/machine/libmachine/persist"
 	"github.com/docker/machine/libmachine/state"
 	"github.com/docker/machine/libmachine/swarm"
-	"github.com/skarademir/naturalsort"
 
-	"github.com/chanwit/gattai/machine"
-	"github.com/chanwit/gattai/utils"
-	Cli "github.com/docker/docker/cli"
-	"github.com/docker/docker/opts"
-	"github.com/docker/docker/pkg/parsers/filters"
+	"github.com/skarademir/naturalsort"
 )
 
 var (
@@ -77,7 +82,7 @@ func DoLs(cli interface{}, args ...string) error {
 	}
 
 	store := machine.GetDefaultStore(utils.GetBaseDir())
-	hostList, err := store.List()
+	hostList, err := listHosts(store, utils.GetBaseDir()) // TODO
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -377,4 +382,43 @@ func sortHostListItemsByName(items []HostListItem) {
 	for i, v := range s {
 		items[i] = m[v]
 	}
+}
+
+func loadHost(store persist.Store, hostName string, storePath string) (*host.Host, error) {
+	h, err := store.Load(hostName)
+	if err != nil {
+		return nil, fmt.Errorf("Loading host from store failed: %s", err)
+	}
+
+	d, err := driverfactory.NewDriver(h.DriverName, h.Name, storePath)
+	if err != nil {
+		return nil, err
+	}
+
+	err = json.Unmarshal(h.RawDriver, &d)
+	if err != nil {
+		return nil, err
+	}
+	h.Driver = d
+
+	return h, nil
+}
+
+func listHosts(store persist.Store, storePath string) ([]*host.Host, error) {
+	cliHosts := []*host.Host{}
+
+	hosts, err := store.List()
+	if err != nil {
+		return nil, fmt.Errorf("Error attempting to list hosts from store: %s", err)
+	}
+
+	for _, h := range hosts {
+		h, err = loadHost(store, h.Name, storePath)
+		if err != nil {
+			return nil, err
+		}
+		cliHosts = append(cliHosts, h)
+	}
+
+	return cliHosts, nil
 }

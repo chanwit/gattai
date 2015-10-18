@@ -4,15 +4,34 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"regexp"
 	"strconv"
 
 	log "github.com/Sirupsen/logrus"
-	"github.com/docker/machine/commands/mcndirs"
+)
+
+var (
+	BaseDir = os.Getenv("MACHINE_STORAGE_PATH")
 )
 
 func GetBaseDir() string {
-	return mcndirs.GetBaseDir()
+	if BaseDir == "" {
+		BaseDir = filepath.Join(".gattai", "machine")
+	}
+	return BaseDir
+}
+
+func GetMachineDir() string {
+	return filepath.Join(GetBaseDir(), "machines")
+}
+
+func GetMachineCertDir() string {
+	return filepath.Join(GetBaseDir(), "certs")
+}
+
+func GetMachineCacheDir() string {
+	return filepath.Join(GetBaseDir(), "cache")
 }
 
 func ReadFile(file string) ([]byte, error) {

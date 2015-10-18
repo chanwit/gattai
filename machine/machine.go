@@ -4,17 +4,16 @@ import (
 	"path/filepath"
 
 	log "github.com/Sirupsen/logrus"
-	"github.com/docker/machine/commands/mcndirs"
+	"github.com/chanwit/gattai/utils"
 	"github.com/docker/machine/libmachine/cert"
-	// utils "github.com/docker/machine/libmachine/mcnutils"
 	"github.com/docker/machine/libmachine/persist"
 )
 
 func GetCertInfo() cert.CertPathInfo {
-	caCertPath := filepath.Join(mcndirs.GetMachineCertDir(), "ca.pem")
-	caKeyPath := filepath.Join(mcndirs.GetMachineCertDir(), "ca-key.pem")
-	clientCertPath := filepath.Join(mcndirs.GetMachineCertDir(), "cert.pem")
-	clientKeyPath := filepath.Join(mcndirs.GetMachineCertDir(), "key.pem")
+	caCertPath := filepath.Join(utils.GetMachineCertDir(), "ca.pem")
+	caKeyPath := filepath.Join(utils.GetMachineCertDir(), "ca-key.pem")
+	clientCertPath := filepath.Join(utils.GetMachineCertDir(), "cert.pem")
+	clientKeyPath := filepath.Join(utils.GetMachineCertDir(), "key.pem")
 
 	certInfo := cert.CertPathInfo{
 		CaCertPath:       caCertPath,
