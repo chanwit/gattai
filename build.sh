@@ -41,12 +41,7 @@ elif [ "$(expr substr $(uname -s) 1 10)" == "MINGW32_NT" ]; then
 elif [ "$(expr substr $(uname -s) 1 9)" == "CYGWIN_NT" ]; then
 	VENDOR=`cygpath -m $PWD`/vendor
 	hardlink_cygwin gattai.go
-		# active.go    \
-		# init.go      \
-		# ls.go        \
-		# provision.go \
-		# rmm.go       \
-		# up.go
+
 
 	DOCKER_VENDOR="$GOPATH/src/github.com/docker/docker/vendor"
 	# MACHINE_VENDOR="$GOPATH/src/github.com/docker/machine/Godeps/_workspace"
@@ -81,7 +76,7 @@ rm -Rf $VENDOR/pkg
 # $GOPATH/bin/govers -m github.com/docker/docker github.com/chanwit/docker
 
 update_and_patch ../../docker/docker     001.patch
-update_and_patch ../../docker/libcompose 002.patch
+# update_and_patch ../../docker/libcompose 002.patch
 
 go install -tags experimental github.com/chanwit/gattai/gattai
 if [[ $? -ne 0 ]]; then
