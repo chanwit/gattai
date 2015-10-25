@@ -21,7 +21,7 @@ func generateToken() (string, error) {
 	}
 
 	discovery := &token.Discovery{}
-	discovery.Initialize("", 0, 0)
+	discovery.Initialize("", 0, 0, nil)
 	tk, err := discovery.CreateCluster()
 	if err != nil {
 		return "", err
