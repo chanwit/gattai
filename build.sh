@@ -84,8 +84,8 @@ if [[ $? -ne 0 ]]; then
 	exit 1
 fi
 
-gox -osarch="windows/amd64" -tags experimental github.com/chanwit/gattai/gattai
-gox -osarch="darwin/amd64"  -tags experimental github.com/chanwit/gattai/gattai
-gox -osarch="linux/amd64"   -tags experimental github.com/chanwit/gattai/gattai
-gox -osarch="linux/arm"     -tags experimental github.com/chanwit/gattai/gattai
+gox -osarch="windows/amd64 darwin/amd64 linux/amd64 linux/arm" \
+    -tags experimental \
+    github.com/chanwit/gattai/gattai
+
 echo "Built successsfully"
