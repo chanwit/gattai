@@ -15,14 +15,14 @@ type Provision struct {
 }
 
 type Machine struct {
-	From           string
-	Driver         string
-	Instances      int
-	Options        Options
-	Commands       []Command
-	Network        string   // default is "" == none
-	NetworkKvstore string   `yaml:"cluster-store"`
-	PostProvision  []string `yaml:"post-provision"`
+	From           string    `yaml:"from,omitempty"`
+	Driver         string    `yaml:"driver,omitempty"`
+	Instances      int       `yaml:"instances,omitempty"`
+	Options        Options   `yaml:"options,omitempty"`
+	Commands       []Command `yaml:"commands,omitempty"`
+	Network        string    `yaml:"network,omitempty"` // default is "" == none
+	NetworkKvstore string    `yaml:"cluster-store,omitempty"`
+	PostProvision  []string  `yaml:"post-provision,omitempty"`
 }
 
 type Command map[string]string
@@ -44,13 +44,22 @@ func parseProvision(bytes []byte) (*Provision, error) {
 	return &p, nil
 }
 
-func ReadProvision(file string) (*Provision, error) {
+func ReadRawProvision(file string) (*Provision, error) {
 	bytes, err := utils.ReadFile(file)
 	if err != nil {
 		return nil, err
 	}
 
 	p, err := parseProvision(bytes)
+	if err != nil {
+		return nil, err
+	}
+
+	return p, nil
+}
+
+func ReadProvision(file string) (*Provision, error) {
+	p, err := ReadRawProvision(file)
 	if err != nil {
 		return nil, err
 	}
@@ -122,7 +131,7 @@ func (p *Provision) GetMachineList(patterns ...string) []string {
 	// if patterns is blank, get all
 	args := []string{}
 	if len(patterns) == 0 {
-		for group, _ := range p.Machines {
+		for group := range p.Machines {
 			args = append(args, group)
 		}
 	} else {

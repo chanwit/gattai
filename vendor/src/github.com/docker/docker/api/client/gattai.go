@@ -16,6 +16,14 @@ func (cli *DockerCli) CmdInit(args ...string) error {
 // Provision
 //
 
+func (cli *DockerCli) CmdAdd(args ...string) error {
+	return client.DoAdd(cli, args...)
+}
+
+// func (cli *DockerCli) CmdFlavors(args ...string) error {
+// 	return client.DoFlavors(cli, args...)
+// }
+
 func (cli *DockerCli) CmdActive(args ...string) error {
 	return client.DoActive(cli, args...)
 }
