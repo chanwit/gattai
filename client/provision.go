@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"text/tabwriter"
 
@@ -234,6 +235,10 @@ func DoProvision(cli interface{}, args ...string) error {
 
 		parts := strings.SplitN(name, "-", 2)
 		group := parts[0]
+		// node-master is not a group, but a machine name, for example.
+		if _, err := strconv.Atoi(parts[1]); err != nil {
+			group = name
+		}
 		details := p.Machines[group]
 
 		h, err := store.Load(name)
@@ -301,6 +306,13 @@ func DoProvision(cli interface{}, args ...string) error {
 					log.Fatalf("Error setting machine configuration from flags provided: %s", err)
 				}
 
+				// make it compatible with RpcDriver
+				driverData, err := json.Marshal(h.Driver)
+				if err != nil {
+					log.Fatal("Cannot marshal host driver")
+				}
+				h.RawDriver = driverData
+
 				err = create(store, h, func(hh *host.Host) {
 					c := machine.Options(make(map[string]interface{}))
 					for k, v := range details.Options {
@@ -320,9 +332,10 @@ func DoProvision(cli interface{}, args ...string) error {
 							panic(err)
 						} else {
 							hh.HostOptions.EngineOptions.ArbitraryFlags = c.StringSlice("engine-opt")
-							saveDiscoveryUrl(url)
+							saveDiscoveryUrl(url + "/" + kvstoreName)
 						}
 					}
+
 				})
 				if err != nil {
 					log.Errorf("Error creating machine: %s", err)
@@ -330,7 +343,7 @@ func DoProvision(cli interface{}, args ...string) error {
 				}
 
 				// make it compatible with RpcDriver
-				driverData, err := json.Marshal(h.Driver)
+				driverData, err = json.Marshal(h.Driver)
 				if err != nil {
 					log.Fatal("Cannot marshal host driver")
 				}
@@ -360,7 +373,8 @@ func DoProvision(cli interface{}, args ...string) error {
 				if strings.HasPrefix(post, "docker") {
 					err := engineExecute(h, strings.TrimSpace(post[6:]))
 					if err != nil {
-						return err
+						// if error, go on
+						log.Error(err)
 					}
 				}
 			}
