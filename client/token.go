@@ -28,7 +28,7 @@ func generateToken() (string, error) {
 	}
 
 	fmt.Fprintf(f, "---\n")
-	fmt.Fprintf(f, "CLUSTER_TOKEN: %s\n", tk)
+	fmt.Fprintf(f, "CLUSTER_TOKEN: token://%s\n", tk)
 
 	return tk, nil
 }

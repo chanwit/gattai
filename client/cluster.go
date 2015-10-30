@@ -65,7 +65,7 @@ func swarmManage(h *host.Host, image string, token string) error {
 		"--tlscert=" + authOptions.ServerCertRemotePath,
 		"--tlskey=" + authOptions.ServerKeyRemotePath,
 		"-H", "0.0.0.0:3376",
-		"token://" + token}...)
+		token}...)
 
 	err = cmd.Run()
 	if err == nil {
@@ -112,7 +112,7 @@ func swarmJoin(name string, image string, token string) error {
 		"--name", "swarm-agent",
 		image, "join",
 		"--advertise", ip + ":2376",
-		"token://" + token}...)
+		token}...)
 
 	b, err := cmd.CombinedOutput()
 	if err == nil {
@@ -165,7 +165,7 @@ func DoCluster(cli interface{}, args ...string) error {
 		return err
 	}
 
-	fmt.Printf("Use discovery token://%s\n", token)
+	fmt.Printf("Use discovery: %s\n", token)
 
 	// start
 	for _, machineName := range p.GetMachineList(cmd.Args()...) {
