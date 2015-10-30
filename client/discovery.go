@@ -49,7 +49,7 @@ syncLimit=2
 	addHosts := []string{}
 	hosts := []*host.Host{}
 	for _, name := range machineList {
-		h, err := store.Load(name)
+		h, err := loadHost(store, name, utils.GetBaseDir())
 		if err != nil {
 			return err
 		}

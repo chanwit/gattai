@@ -78,7 +78,7 @@ func swarmManage(h *host.Host, image string, token string) error {
 func swarmJoin(name string, image string, token string) error {
 
 	store := machine.GetDefaultStore(utils.GetBaseDir())
-	h, err := store.Load(name)
+	h, err := loadHost(store, name, utils.GetBaseDir())
 	if err != nil {
 		return err
 	}
@@ -177,7 +177,7 @@ func DoCluster(cli interface{}, args ...string) error {
 
 	if master != nil {
 		store := machine.GetDefaultStore(utils.GetBaseDir())
-		h, err := store.Load(*master)
+		h, err := loadHost(store, *master, utils.GetBaseDir())
 		if err != nil {
 			return err
 		}

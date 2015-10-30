@@ -308,8 +308,9 @@ func DoProvision(cli interface{}, args ...string) error {
 					}
 
 					kvstoreName := details.NetworkKvstore
+					log.Debug("Cluster store: " + kvstoreName)
 					if kvstoreName != "" {
-						kvstore, err := store.Load(kvstoreName)
+						kvstore, err := loadHost(store, kvstoreName, *machineStoragePath)
 						if err != nil {
 							panic(err)
 						}
@@ -343,6 +344,7 @@ func DoProvision(cli interface{}, args ...string) error {
 			}
 		} else {
 			fmt.Printf("Machine '%s' exists, starting...\n", name)
+			h, err = loadHost(store, name, *machineStoragePath)
 			// TODO reprovision
 			h.Start()
 			spacing = false

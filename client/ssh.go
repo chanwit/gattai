@@ -51,7 +51,7 @@ func DoSsh(cli interface{}, args ...string) error {
 	}
 
 	if len(machineList) == 1 && len(cmd.Args()) == 1 {
-		host, err := store.Load(machineList[0])
+		host, err := loadHost(store, machineList[0], utils.GetBaseDir())
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -89,7 +89,7 @@ func DoSsh(cli interface{}, args ...string) error {
 		outputs := make(chan string, limit)
 		for _, name := range machineList {
 			go func(name string) {
-				host, err := store.Load(name)
+				host, err := loadHost(store, name, utils.GetBaseDir())
 				if err != nil {
 					log.Fatal(err)
 				}

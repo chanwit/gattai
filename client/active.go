@@ -64,7 +64,7 @@ func DoActive(cli interface{}, args ...string) error {
 
 	store := machine.GetDefaultStore(*machineStoragePath)
 
-	host, err := store.Load(cmd.Args()[0])
+	host, err := loadHost(store, cmd.Args()[0], *machineStoragePath)
 	if err == nil {
 		f, err := os.Create(ACTIVE_HOST_FILE)
 		defer f.Close()
