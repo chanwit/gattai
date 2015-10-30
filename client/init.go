@@ -27,11 +27,11 @@ machines:
 #    driver: digitalocean
 #    instances: 5
 #
-  demo:
-    driver: none
-    instances: 2
-    options:
-      url: "tcp://127.0.0.1:2375"
+#  demo:
+#    driver: none
+#    instances: 2
+#    options:
+#      url: "tcp://127.0.0.1:2375"
 
 `
 	_, err = os.Stat("provision.yml")
