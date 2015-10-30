@@ -125,8 +125,7 @@ func swarmJoin(name string, image string, token string) error {
 }
 
 func DoCluster(cli interface{}, args ...string) error {
-	cmd := Cli.Subcmd("cluster", []string{"MACHINES"},
-		"Form a cluster with a set of specified machines", false)
+	cmd := Cli.Subcmd("cluster", []string{"MACHINES"}, "Form a cluster with a set of specified machines", false)
 
 	master := cmd.String([]string{"m", "-master"}, "", "Configure the cluster masters")
 	image := cmd.String([]string{"i", "-image"}, "swarm", "Specify Docker Swarm image")
