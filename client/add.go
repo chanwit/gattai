@@ -2,6 +2,7 @@ package client
 
 import (
 	"errors"
+	"fmt"
 	"io/ioutil"
 
 	"github.com/chanwit/gattai/flavor"
@@ -42,6 +43,10 @@ func DoAdd(cli interface{}, args ...string) error {
 	machineGroup := cmd.Args()[0]
 
 	switch *flavorName {
+	case "none":
+		f := flavor.None
+		f.Instances = *n
+		p.Machines[machineGroup] = f
 
 	case "do-2g", "digitalocean-2g":
 		f := flavor.DigitalOcean_2G
@@ -62,6 +67,9 @@ func DoAdd(cli interface{}, args ...string) error {
 		node.Instances = *n
 		node.NetworkKvstore = machineGroup + "-master"
 		p.Machines[machineGroup] = node
+
+	default:
+		return fmt.Errorf("Flavor '%s' is not supported")
 	}
 
 	provisionYml, err := yaml.Marshal(p)

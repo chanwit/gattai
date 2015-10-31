@@ -64,6 +64,7 @@ elif [ "$(expr substr $(uname -s) 1 9)" == "CYGWIN_NT" ]; then
 fi
 
 if [ "$1" == "--cache" ]; then
+	goimports -w `git status --porcelain | grep .go | awk '{ print $2 }'`
 	go install -tags experimental github.com/chanwit/gattai/gattai
 	exit 0
 fi
