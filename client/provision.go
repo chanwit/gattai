@@ -235,9 +235,11 @@ func DoProvision(cli interface{}, args ...string) error {
 
 		parts := strings.SplitN(name, "-", 2)
 		group := parts[0]
-		// node-master is not a group, but a machine name, for example.
-		if _, err := strconv.Atoi(parts[1]); err != nil {
-			group = name
+		if len(parts) > 1 {
+			// node-master is not a group, but a machine name, for example.
+			if _, err := strconv.Atoi(parts[1]); err != nil {
+				group = name
+			}
 		}
 		details := p.Machines[group]
 

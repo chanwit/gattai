@@ -137,6 +137,11 @@ func DoCluster(cli interface{}, args ...string) error {
 		return errors.New("Please specify a set of machines or the cluster master.")
 	}
 
+	// if specify only a group, then master is ${group}-master
+	if *master == "" && len(cmd.Args()) == 1 {
+		*master = cmd.Args()[0] + "-master"
+	}
+
 	// do provision if required
 	if *provision == true {
 		err := DoProvision(cli, append([]string{"-q", *master}, cmd.Args()...)...)
