@@ -20,7 +20,7 @@ func DoAdd(cli interface{}, args ...string) error {
 		false)
 
 	flavorName := cmd.String([]string{"f", "-flavor"}, "", "Name of pre-defined flavor")
-	n := cmd.Int([]string{"n", "--instances"}, 1, "Number of instances")
+	n := cmd.Int([]string{"n", "-instances"}, 1, "Number of instances")
 
 	cmd.ParseFlags(args, true)
 
