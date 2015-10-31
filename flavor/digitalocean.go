@@ -19,7 +19,7 @@ var (
 	DigitalOcean_2G_Exp = machine.Machine{
 		Driver: "digitalocean",
 		Options: map[string]interface{}{
-			"digitalocean-image":        "ubuntu-14-04-x64",
+			"digitalocean-image":        "debian-8-x64",
 			"digitalocean-region":       "nyc3",
 			"digitalocean-size":         "2gb",
 			"digitalocean-access-token": "$DIGITALOCEAN_ACCESS_TOKEN",
