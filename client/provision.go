@@ -373,8 +373,8 @@ func DoProvision(cli interface{}, args ...string) error {
 				if strings.HasPrefix(post, "docker") {
 					err := engineExecute(h, strings.TrimSpace(post[6:]))
 					if err != nil {
-						// if error, go on
-						log.Error(err)
+						// if error, goes on
+						log.Debug(err)
 					}
 				}
 			}

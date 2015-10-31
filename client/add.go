@@ -4,6 +4,7 @@ import (
 	"errors"
 	"io/ioutil"
 
+	"github.com/chanwit/gattai/flavor"
 	"github.com/chanwit/gattai/machine"
 	Cli "github.com/docker/docker/cli"
 	"gopkg.in/yaml.v2"
@@ -17,12 +18,12 @@ func DoAdd(cli interface{}, args ...string) error {
 		"Add a pre-defined flavor",
 		false)
 
-	flavor := cmd.String([]string{"f", "-flavor"}, "", "Name of pre-defined flavor")
+	flavorName := cmd.String([]string{"f", "-flavor"}, "", "Name of pre-defined flavor")
 	n := cmd.Int([]string{"n", "--instances"}, 1, "Number of instances")
 
 	cmd.ParseFlags(args, true)
 
-	if *flavor == "" {
+	if *flavorName == "" {
 		return errors.New("Please specify a pre-set flavor")
 	}
 
@@ -40,66 +41,27 @@ func DoAdd(cli interface{}, args ...string) error {
 
 	machineGroup := cmd.Args()[0]
 
-	switch *flavor {
+	switch *flavorName {
 
 	case "do-2g", "digitalocean-2g":
-		p.Machines[machineGroup] = machine.Machine{
-			Driver:    "digitalocean",
-			Instances: *n,
-			Options: map[string]interface{}{
-				"digitalocean-image":        "ubuntu-14-04-x64",
-				"digitalocean-region":       "nyc3",
-				"digitalocean-size":         "2gb",
-				"digitalocean-access-token": "$DIGITALOCEAN_ACCESS_TOKEN",
-				"engine-install-url":        "https://get.docker.com",
-			},
-		}
+		f := flavor.DigitalOcean_2G
+		f.Instances = *n
+		p.Machines[machineGroup] = f
 
-	case "do-2g-ext", "digitalocean-2g-ext":
-		p.Machines[machineGroup] = machine.Machine{
-			Driver:    "digitalocean",
-			Instances: *n,
-			Options: map[string]interface{}{
-				"digitalocean-image":        "debian-8-x64",
-				"digitalocean-region":       "nyc3",
-				"digitalocean-size":         "2gb",
-				"digitalocean-access-token": "$DIGITALOCEAN_ACCESS_TOKEN",
-				"engine-install-url":        "https://experimental.docker.com",
-			},
-		}
+	case "do-2g-exp", "digitalocean-2g-exp":
+		f := flavor.DigitalOcean_2G_Exp
+		f.Instances = *n
+		p.Machines[machineGroup] = f
 
 	case "do-2g-cluster", "digitalocean-2g-cluster":
-		p.Machines[machineGroup+"-master"] = machine.Machine{
-			Driver:    "digitalocean",
-			Instances: 1,
-			Options: map[string]interface{}{
-				"digitalocean-image":        "debian-8-x64",
-				"digitalocean-region":       "nyc3",
-				"digitalocean-size":         "2gb",
-				"digitalocean-access-token": "$DIGITALOCEAN_ACCESS_TOKEN",
-				"engine-install-url":        "https://experimental.docker.com",
-			},
-			PostProvision: []string{
-				"docker run -d -p 8400:8400 -p 8500:8500 -p 8600:53/udp progrium/consul --server -bootstrap-expect 1",
-			},
-		}
+		master := flavor.DigitalOcean_2G_Cluster["master"]
+		master.Instances = 1
+		p.Machines[machineGroup+"-master"] = master
 
-		p.Machines[machineGroup] = machine.Machine{
-			Driver:         "digitalocean",
-			Instances:      *n,
-			NetworkKvstore: machineGroup + "-master",
-			// Network: "overlay",
-			Options: map[string]interface{}{
-				"digitalocean-image":        "debian-8-x64",
-				"digitalocean-region":       "nyc3",
-				"digitalocean-size":         "2gb",
-				"digitalocean-access-token": "$DIGITALOCEAN_ACCESS_TOKEN",
-				"engine-install-url":        "https://experimental.docker.com",
-			},
-			PostProvision: []string{
-				"docker network create -d overlay multihost",
-			},
-		}
+		node := flavor.DigitalOcean_2G_Cluster["node"]
+		node.Instances = *n
+		node.NetworkKvstore = machineGroup + "-master"
+		p.Machines[machineGroup] = node
 	}
 
 	provisionYml, err := yaml.Marshal(p)
