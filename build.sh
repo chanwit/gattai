@@ -81,6 +81,7 @@ rm -Rf $VENDOR/pkg
 
 update_and_patch ../../docker/docker     001.patch
 # update_and_patch ../../docker/libcompose 002.patch
+update_and_patch ../../docker/machine    003.patch
 
 go install -tags experimental github.com/chanwit/gattai/gattai
 if [[ $? -ne 0 ]]; then

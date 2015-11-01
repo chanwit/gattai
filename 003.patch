@@ -1,0 +1,397 @@
+diff --git a/drivers/aiyara/aiyara.go b/drivers/aiyara/aiyara.go
+new file mode 100644
+index 0000000..59adfe9
+--- /dev/null
++++ b/drivers/aiyara/aiyara.go
+@@ -0,0 +1,181 @@
++package aiyara
++
++import (
++	"fmt"
++	"net"
++	"os"
++	"path/filepath"
++	"time"
++
++	"github.com/docker/machine/libmachine/drivers"
++	"github.com/docker/machine/libmachine/log"
++	"github.com/docker/machine/libmachine/mcnflag"
++	"github.com/docker/machine/libmachine/mcnutils"
++	"github.com/docker/machine/libmachine/state"
++)
++
++type Driver struct {
++	*drivers.BaseDriver
++	SSHKey string
++}
++
++const (
++	defaultSSHUser = "root"
++	defaultSSHPort = 22
++	defaultTimeout = 1 * time.Second
++)
++
++var (
++	defaultSSHKey = filepath.Join(mcnutils.GetHomeDir(), ".ssh", "id_rsa")
++)
++
++// GetCreateFlags registers the flags this driver adds to
++// "docker hosts create"
++func (d *Driver) GetCreateFlags() []mcnflag.Flag {
++	return []mcnflag.Flag{
++		mcnflag.StringFlag{
++			Name:  "aiyara-ip-address",
++			Usage: "IP Address of machine",
++		},
++		mcnflag.StringFlag{
++			Name:  "aiyara-ssh-user",
++			Usage: "SSH user",
++			Value: defaultSSHUser,
++		},
++		mcnflag.StringFlag{
++			Name:  "aiyara-ssh-key",
++			Usage: "SSH private key path",
++			Value: defaultSSHKey,
++		},
++		mcnflag.IntFlag{
++			Name:  "aiyara-ssh-port",
++			Usage: "SSH port",
++			Value: defaultSSHPort,
++		},
++	}
++}
++
++// NewDriver creates and returns a new instance of the driver
++func NewDriver(hostName, storePath string) drivers.Driver {
++	return &Driver{
++		SSHKey: defaultSSHKey,
++		BaseDriver: &drivers.BaseDriver{
++			SSHUser:     defaultSSHUser,
++			SSHPort:     defaultSSHPort,
++			MachineName: hostName,
++			StorePath:   storePath,
++		},
++	}
++}
++
++func (d *Driver) DriverName() string {
++	return "aiyara"
++}
++
++func (d *Driver) GetSSHHostname() (string, error) {
++	return d.GetIP()
++}
++
++func (d *Driver) GetSSHUsername() string {
++	return d.SSHUser
++}
++
++func (d *Driver) SetConfigFromFlags(flags drivers.DriverOptions) error {
++	d.IPAddress = flags.String("aiyara-ip-address")
++	d.SSHUser = flags.String("aiyara-ssh-user")
++	d.SSHKey = flags.String("aiyara-ssh-key")
++	d.SSHPort = flags.Int("aiyara-ssh-port")
++
++	if d.IPAddress == "" {
++		return fmt.Errorf("aiyara driver requires the --aiyara-ip-address option")
++	}
++
++	if d.SSHKey == "" {
++		return fmt.Errorf("aiyara driver requires the --aiyara-ssh-key option")
++	}
++
++	return nil
++}
++
++func (d *Driver) PreCreateCheck() error {
++	return nil
++}
++
++func (d *Driver) Create() error {
++	log.Infof("Importing SSH key...")
++
++	if err := mcnutils.CopyFile(d.SSHKey, d.GetSSHKeyPath()); err != nil {
++		return fmt.Errorf("unable to copy ssh key: %s", err)
++	}
++
++	if err := os.Chmod(d.GetSSHKeyPath(), 0600); err != nil {
++		return err
++	}
++
++	log.Debugf("IP: %s", d.IPAddress)
++
++	return nil
++}
++
++func (d *Driver) GetURL() (string, error) {
++	ip, err := d.GetIP()
++	if err != nil {
++		return "", err
++	}
++	return fmt.Sprintf("tcp://%s:2376", ip), nil
++}
++
++func (d *Driver) GetIP() (string, error) {
++	if d.IPAddress == "" {
++		return "", fmt.Errorf("IP address is not set")
++	}
++	return d.IPAddress, nil
++}
++
++func (d *Driver) GetState() (state.State, error) {
++	addr := fmt.Sprintf("%s:%d", d.IPAddress, d.SSHPort)
++	_, err := net.DialTimeout("tcp", addr, defaultTimeout)
++	var st state.State
++	if err != nil {
++		st = state.Stopped
++	} else {
++		st = state.Running
++	}
++	return st, nil
++}
++
++func (d *Driver) Start() error {
++	return fmt.Errorf("aiyara driver does not support start")
++}
++
++func (d *Driver) Stop() error {
++	return fmt.Errorf("aiyara driver does not support stop")
++}
++
++func (d *Driver) Remove() error {
++	return nil
++}
++
++func (d *Driver) Restart() error {
++	log.Debug("Restarting...")
++
++	if _, err := drivers.RunSSHCommandFromDriver(d, "sudo shutdown -r now"); err != nil {
++		return err
++	}
++
++	return nil
++}
++
++func (d *Driver) Kill() error {
++	log.Debug("Killing...")
++
++	if _, err := drivers.RunSSHCommandFromDriver(d, "sudo shutdown -P now"); err != nil {
++		return err
++	}
++
++	return nil
++}
++
++func (d *Driver) publicSSHKeyPath() string {
++	return d.GetSSHKeyPath() + ".pub"
++}
+diff --git a/libmachine/provision/aiyara4.go b/libmachine/provision/aiyara4.go
+new file mode 100644
+index 0000000..11eadd6
+--- /dev/null
++++ b/libmachine/provision/aiyara4.go
+@@ -0,0 +1,204 @@
++package provision
++
++import (
++	"errors"
++	"fmt"
++
++	"github.com/docker/machine/libmachine/auth"
++	"github.com/docker/machine/libmachine/drivers"
++	"github.com/docker/machine/libmachine/engine"
++	"github.com/docker/machine/libmachine/log"
++	"github.com/docker/machine/libmachine/mcnutils"
++	"github.com/docker/machine/libmachine/provision/pkgaction"
++	"github.com/docker/machine/libmachine/provision/serviceaction"
++	"github.com/docker/machine/libmachine/swarm"
++)
++
++func init() {
++	Register("Aiyara4", &RegisteredProvisioner{
++		New: NewAiyara4Provisioner,
++	})
++}
++
++func NewAiyara4Provisioner(d drivers.Driver) Provisioner {
++	return &Aiyara4Provisioner{
++		GenericProvisioner{
++			DockerOptionsDir:  "/etc/docker",
++			DaemonOptionsFile: "/etc/default/docker",
++			OsReleaseId:       "aiyara",
++			Driver:            d,
++		},
++	}
++}
++
++type Aiyara4Provisioner struct {
++	GenericProvisioner
++}
++
++func (provisioner *Aiyara4Provisioner) Service(name string, action serviceaction.ServiceAction) error {
++	command := fmt.Sprintf("sudo service %s %s", action.String(), name)
++
++	if _, err := provisioner.SSHCommand(command); err != nil {
++		return err
++	}
++
++	return nil
++}
++
++func (provisioner *Aiyara4Provisioner) Package(name string, action pkgaction.PackageAction) error {
++	var packageAction string
++
++	updateMetadata := true
++
++	switch action {
++	case pkgaction.Install, pkgaction.Upgrade:
++		packageAction = "install"
++	case pkgaction.Remove:
++		packageAction = "remove"
++		updateMetadata = false
++	}
++
++	switch name {
++	case "docker":
++		name = "docker-engine"
++	}
++
++	if updateMetadata {
++		if _, err := provisioner.SSHCommand("sudo apt-get update"); err != nil {
++			return err
++		}
++	}
++
++	// handle the new docker-engine package; we can probably remove this
++	// after we have a few versions
++	if action == pkgaction.Upgrade && name == "docker-engine" {
++		// run the force remove on the existing lxc-docker package
++		// and remove the existing apt source list
++		// also re-run the get.docker.com script to properly setup
++		// the system again
++
++		// commands := []string{
++		// 	"rm /etc/apt/sources.list.d/docker.list || true",
++		// 	"apt-get remove -y lxc-docker || true",
++		// 	"curl -sSL https://get.docker.com | sh",
++		// }
++
++		// for _, cmd := range commands {
++		// 	command := fmt.Sprintf("sudo DEBIAN_FRONTEND=noninteractive %s", cmd)
++		// 	if _, err := provisioner.SSHCommand(command); err != nil {
++		// 		return err
++		// 	}
++		// }
++		return errors.New("Not support upgrading docker-engine")
++	}
++
++	command := fmt.Sprintf("DEBIAN_FRONTEND=noninteractive sudo -E apt-get %s -y  %s", packageAction, name)
++
++	log.Debugf("package: action=%s name=%s", action.String(), name)
++
++	if _, err := provisioner.SSHCommand(command); err != nil {
++		return err
++	}
++
++	return nil
++}
++
++func (provisioner *Aiyara4Provisioner) dockerDaemonResponding() bool {
++	if _, err := provisioner.SSHCommand("sudo docker version"); err != nil {
++		log.Warnf("Error getting SSH command to check if the daemon is up: %s", err)
++		return false
++	}
++
++	// The daemon is up if the command worked.  Carry on.
++	return true
++}
++
++var (
++	dockerVer  = "docker-1.9.0"
++	defaultUrl = "https://dl.dropboxusercontent.com/u/381580/docker"
++)
++
++func installCustomDocker(provisioner *Aiyara4Provisioner, url string) error {
++	// if the old version running, stop it
++	provisioner.Service("docker", serviceaction.Stop)
++
++	if _, err := provisioner.SSHCommand("sudo unlink /usr/bin/docker || sudo mkdir -p /opt/docker || sudo unlink /opt/docker/docker-*"); err != nil {
++		return err
++	}
++
++	if url == "" {
++		url = defaultUrl
++	}
++
++	cmdStr := fmt.Sprintf("sudo wget --no-check-certificate -q -O/opt/docker/%s.xz %s/%s.xz && sudo unxz -f /opt/docker/%s.xz)",
++		dockerVer, url, dockerVer, dockerVer)
++
++	if _, err := provisioner.SSHCommand(cmdStr); err != nil {
++		return err
++	}
++
++	cmdStr = fmt.Sprintf("sudo chmod +x /opt/docker/%s && sudo ln -s /opt/docker/%s /usr/bin/docker",
++		dockerVer, dockerVer)
++	if _, err := provisioner.SSHCommand(cmdStr); err != nil {
++		return err
++	}
++
++	// install init.d script
++	cmdStr = fmt.Sprintf("sudo wget --no-check-certificate -q -O/etc/init.d/docker %s/initd-docker && sudo chmod +x /etc/init.d/docker",
++		url)
++	if _, err := provisioner.SSHCommand(cmdStr); err != nil {
++		return err
++	}
++
++	provisioner.Service("docker", serviceaction.Start)
++
++	return nil
++}
++
++func (provisioner *Aiyara4Provisioner) Provision(swarmOptions swarm.SwarmOptions, authOptions auth.AuthOptions, engineOptions engine.EngineOptions) error {
++	provisioner.SwarmOptions = swarmOptions
++	provisioner.AuthOptions = authOptions
++	provisioner.EngineOptions = engineOptions
++
++	if provisioner.EngineOptions.StorageDriver == "" {
++		provisioner.EngineOptions.StorageDriver = "aufs"
++	}
++
++	if err := provisioner.SetHostname(provisioner.Driver.GetMachineName()); err != nil {
++		return err
++	}
++
++	for _, pkg := range provisioner.Packages {
++		if err := provisioner.Package(pkg, pkgaction.Install); err != nil {
++			return err
++		}
++	}
++
++	url := engineOptions.InstallURL
++	if url == "" {
++		url = defaultUrl
++	}
++	if err := installCustomDocker(provisioner, url); err != nil {
++		return err
++	}
++
++	if err := mcnutils.WaitFor(provisioner.dockerDaemonResponding); err != nil {
++		return err
++	}
++
++	if err := makeDockerOptionsDir(provisioner); err != nil {
++		return err
++	}
++
++	provisioner.AuthOptions = setRemoteAuthOptions(provisioner)
++
++	if err := ConfigureAuth(provisioner); err != nil {
++		return err
++	}
++
++	if err := configureSwarm(provisioner, swarmOptions, provisioner.AuthOptions); err != nil {
++		return err
++	}
++
++	return nil
++}
