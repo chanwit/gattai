@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -104,6 +105,24 @@ func engineExecute(h *host.Host, line string) error {
 	b, err := cmd.CombinedOutput()
 	if err != nil {
 		fmt.Print(string(b))
+		return err
+	}
+
+	return nil
+}
+
+func executeBash(command string) error {
+	bash, err := exec.LookPath("bash")
+	if err != nil {
+		return err
+	}
+	args := []string{"-c", command}
+	cmd := exec.Command(bash, args...)
+	log.Debugf("[executeBash] Executing: %s", cmd)
+
+	b, err := cmd.CombinedOutput()
+	fmt.Print(string(b))
+	if err != nil {
 		return err
 	}
 
@@ -235,13 +254,42 @@ func DoProvision(cli interface{}, args ...string) error {
 
 		parts := strings.SplitN(name, "-", 2)
 		group := parts[0]
+		index := -1
 		if len(parts) > 1 {
 			// node-master is not a group, but a machine name, for example.
-			if _, err := strconv.Atoi(parts[1]); err != nil {
+			i, err := strconv.Atoi(parts[1])
+			if err != nil {
 				group = name
+			} else {
+				index = i - 1
 			}
 		}
 		details := p.Machines[group]
+
+		if details.BaseAddress != "" {
+			ip, _, err := net.ParseCIDR(details.BaseAddress)
+			if err != nil {
+				return err
+			}
+
+			for i := details.BaseIndex; i <= index; i++ {
+				utils.IncAddress(ip)
+			}
+			os.Setenv("MACHINE_IP", ip.String())
+		}
+
+		if details.PreProvision != nil && len(details.PreProvision) > 0 {
+			fmt.Println("Processing pre-provision commands...")
+			for _, pre := range details.PreProvision {
+				log.Debugf("pre-provision: %s", os.ExpandEnv(pre))
+				// if strings.HasPrefix(pre, "bash") {
+				err := executeBash(strings.TrimSpace(os.ExpandEnv(pre)))
+				if err != nil {
+					log.Debug(err)
+				}
+				// }
+			}
+		}
 
 		h, err := store.Load(name)
 		if err != nil {
