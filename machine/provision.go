@@ -22,6 +22,9 @@ type Machine struct {
 	Commands       []Command `yaml:"commands,omitempty"`
 	Network        string    `yaml:"network,omitempty"` // default is "" == none
 	NetworkKvstore string    `yaml:"cluster-store,omitempty"`
+	BaseIndex      int       `yaml:"base-index,omitempty"`
+	BaseAddress    string    `yaml:"base-address,omitempty"`
+	PreProvision   []string  `yaml:"pre-provision,omitempty"`
 	PostProvision  []string  `yaml:"post-provision,omitempty"`
 }
 
@@ -80,6 +83,12 @@ func (p *Provision) verifyDrivers() error {
 			details.Instances = 1
 		} else if details.Instances < 0 {
 			return fmt.Errorf("group %s has incorrect instance: %d", group, details.Instances)
+		}
+
+		if details.BaseIndex == 0 {
+			details.BaseIndex = 1
+		} else if details.BaseIndex < 0 {
+			return fmt.Errorf("group %s has incorrect base-index: %d", group, details.BaseIndex)
 		}
 
 		// inherit drive and details with From
@@ -145,7 +154,7 @@ func (p *Provision) GetMachineList(patterns ...string) []string {
 			if details.Instances == 0 || details.Instances == 1 {
 				machineList = append(machineList, arg)
 			} else {
-				pattern := fmt.Sprintf("%s-[1:%d]", arg, details.Instances)
+				pattern := fmt.Sprintf("%s-[%d:%d]", arg, details.BaseIndex, details.Instances)
 				machineList = append(machineList, utils.Generate(pattern)...)
 			}
 

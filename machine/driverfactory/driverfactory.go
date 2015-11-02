@@ -3,6 +3,7 @@ package driverfactory
 import (
 	"fmt"
 
+	"github.com/docker/machine/drivers/aiyara"
 	"github.com/docker/machine/drivers/amazonec2"
 	"github.com/docker/machine/drivers/azure"
 	"github.com/docker/machine/drivers/digitalocean"
@@ -37,6 +38,7 @@ func GetDriverNames() []string {
 		"vmwarevcloudair",
 		"vmwarevsphere",
 		"none",
+		"aiyara",
 	}
 }
 
@@ -76,6 +78,8 @@ func NewDriver(driverName, hostName, storePath string) (drivers.Driver, error) {
 		driver = vmwarevsphere.NewDriver(hostName, storePath)
 	case "none":
 		driver = none.NewDriver(hostName, storePath)
+	case "aiyara":
+		driver = aiyara.NewDriver(hostName, storePath)
 	default:
 		return nil, fmt.Errorf("Driver %q not recognized", driverName)
 	}
