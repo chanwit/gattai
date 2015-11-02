@@ -187,7 +187,7 @@ index 0000000..59adfe9
 +}
 diff --git a/libmachine/provision/aiyara4.go b/libmachine/provision/aiyara4.go
 new file mode 100644
-index 0000000..11eadd6
+index 0000000..5722ea1
 --- /dev/null
 +++ b/libmachine/provision/aiyara4.go
 @@ -0,0 +1,204 @@
@@ -229,7 +229,7 @@ index 0000000..11eadd6
 +}
 +
 +func (provisioner *Aiyara4Provisioner) Service(name string, action serviceaction.ServiceAction) error {
-+	command := fmt.Sprintf("sudo service %s %s", action.String(), name)
++	command := fmt.Sprintf("sudo service %s %s", name, action.String())
 +
 +	if _, err := provisioner.SSHCommand(command); err != nil {
 +		return err
@@ -323,7 +323,7 @@ index 0000000..11eadd6
 +		url = defaultUrl
 +	}
 +
-+	cmdStr := fmt.Sprintf("sudo wget --no-check-certificate -q -O/opt/docker/%s.xz %s/%s.xz && sudo unxz -f /opt/docker/%s.xz)",
++	cmdStr := fmt.Sprintf("sudo wget --no-check-certificate -q -O/opt/docker/%s.xz %s/%s.xz && sudo unxz -f /opt/docker/%s.xz",
 +		dockerVer, url, dockerVer, dockerVer)
 +
 +	if _, err := provisioner.SSHCommand(cmdStr); err != nil {
