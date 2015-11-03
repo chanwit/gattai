@@ -15,7 +15,7 @@ function hardlink_cygwin {
     done
 }
 
-DOCKER_VERSION="v1.9.0-rc4" # origin/master
+DOCKER_VERSION="v1.9.0-rc5" # origin/master
 
 function update_and_patch {
     local PROJECT_DIR=$1
