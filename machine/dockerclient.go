@@ -119,7 +119,7 @@ func (h *Runner) FindContainerByImage(storeType map[string]int) (string, error) 
 
 func (h *Runner) findContainerByImage(containers []dockerclient.Container, image string, port int) (string, error) {
 	for _, c := range containers {
-		if strings.HasSuffix(c.Image, "/"+image) {
+		if strings.HasSuffix(c.Image, "/"+image) || strings.Contains(c.Image, "/"+image+":") {
 			ip, err := h.Driver.GetIP()
 			if err != nil {
 				return "", err
