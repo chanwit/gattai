@@ -40,6 +40,9 @@ func swarmManage(h *host.Host, image string, token string) error {
 		return err
 	}
 
+	retryCount := 0
+
+retry:
 	exec.Command(os.Args[0], []string{
 		"-H", url,
 		"--tlscacert=" + h.HostOptions.AuthOptions.CaCertPath,
@@ -70,6 +73,20 @@ func swarmManage(h *host.Host, image string, token string) error {
 	err = cmd.Run()
 	if err == nil {
 		fmt.Printf("Manager '%s' started successfully...\n", h.Name)
+		return nil
+	}
+
+	if _, ok := err.(*exec.ExitError); ok {
+		retryCount++
+		if retryCount <= 5 {
+			fmt.Printf("Failed to start manager. Retry: %d\n", retryCount)
+			goto retry
+		}
+		// if s, ok := exiterr.Sys().(syscall.WaitStatus); ok {
+		// 	if s.ExitCode == 8 {
+		// 		goto retry
+		// 	}
+		// }
 	}
 
 	return err
@@ -93,6 +110,8 @@ func swarmJoin(name string, image string, token string) error {
 		return err
 	}
 
+	retryCount := 0
+retry:
 	exec.Command(os.Args[0], []string{
 		"-H", url,
 		"--tlscacert=" + h.HostOptions.AuthOptions.CaCertPath,
@@ -117,7 +136,15 @@ func swarmJoin(name string, image string, token string) error {
 	b, err := cmd.CombinedOutput()
 	if err == nil {
 		fmt.Printf("Machine '%s' joined cluster...\n", name)
+		return nil
 	} else {
+		if _, ok := err.(*exec.ExitError); ok {
+			retryCount++
+			if retryCount <= 5 {
+				fmt.Printf("Failed to join '%s'. Retry: %d\n", name, retryCount)
+				goto retry
+			}
+		}
 		fmt.Println(string(b))
 	}
 
